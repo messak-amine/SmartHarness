@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 650" role="img" aria-labelledby="title description">
+<title id="title">SmartHarness architecture and implementation boundary</title>
+<desc id="description">ECU A monitors headlights and indicators; ECU B monitors brake lights and ventilation. They send fault frames to a shared virtual CAN bus, received by the gateway and shown as JSON in the terminal. MQTT, Node-RED and SQLite are planned but not implemented.</desc>
+<defs><pattern id="dot" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.2" fill="#3d5269" opacity=".36"/></pattern></defs>
+<rect width="1440" height="650" rx="18" fill="#0e1928"/>
+<rect x="1" y="1" width="1438" height="648" rx="17" fill="url(#dot)" stroke="#30445b"/>
+<text x="42" y="57" font-family="Segoe UI,Arial,sans-serif" font-size="28" font-weight="700" fill="#f1f6fa">System flow</text>
+<text x="42" y="91" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#a1b5c8">Fault detection happens at the ECU, not in the gateway.</text>
+<rect x="1103" y="33" width="291" height="37" rx="18" fill="#193e3e" stroke="#47bba6"/>
+<circle cx="1124" cy="51" r="6" fill="#51dec1"/><text x="1140" y="57" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="600" fill="#c7f6e9">Implemented in v0.1</text>
+
+<!-- Current software boundary -->
+<rect x="31" y="124" width="945" height="470" rx="15" fill="#13273a" fill-opacity=".55" stroke="#39586c" stroke-width="1.6"/>
+<text x="55" y="158" font-family="Consolas,monospace" font-size="17" letter-spacing="1.1" fill="#65ddc8">ON YOUR COMPUTER  /  SIMULATED</text>
+
+<!-- ECU cards -->
+<rect x="57" y="187" width="327" height="144" rx="13" fill="#1e3549" stroke="#4a7487" stroke-width="1.5"/>
+<rect x="411" y="187" width="327" height="144" rx="13" fill="#1e3549" stroke="#4a7487" stroke-width="1.5"/>
+<rect x="73" y="203" width="61" height="27" rx="6" fill="#25554f"/>
+<text x="104" y="222" text-anchor="middle" font-family="Consolas,monospace" font-size="16" fill="#aeefe0">A</text>
+<rect x="427" y="203" width="61" height="27" rx="6" fill="#25554f"/>
+<text x="458" y="222" text-anchor="middle" font-family="Consolas,monospace" font-size="16" fill="#aeefe0">B</text>
+<text x="150" y="224" font-family="Segoe UI,Arial,sans-serif" font-size="22" font-weight="700" fill="#eff5fa">ECU A</text>
+<text x="504" y="224" font-family="Segoe UI,Arial,sans-serif" font-size="22" font-weight="700" fill="#eff5fa">ECU B</text>
+<text x="74" y="263" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#c0d2dd">01  Headlights</text>
+<text x="74" y="290" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#c0d2dd">02  Indicators</text>
+<text x="428" y="263" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#c0d2dd">03  Brake lights</text>
+<text x="428" y="290" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#c0d2dd">04  Ventilation</text>
+<text x="74" y="316" font-family="Consolas,monospace" font-size="15" fill="#6edac8">fault CAN ID: 0x080</text>
+<text x="428" y="316" font-family="Consolas,monospace" font-size="15" fill="#6edac8">fault CAN ID: 0x081</text>
+<!-- lines to CAN -->
+<path d="M220 331V369 M574 331V369 M220 369H574 M397 369V392" fill="none" stroke="#55cdb8" stroke-width="3"/>
+<circle cx="397" cy="369" r="5" fill="#55cdb8"/>
+<rect x="57" y="392" width="681" height="62" rx="12" fill="#16454a" stroke="#55cdb8" stroke-width="1.5"/>
+<text x="76" y="420" font-family="Segoe UI,Arial,sans-serif" font-size="22" font-weight="700" fill="#dcfaf3">Shared virtual CAN channel</text>
+<text x="76" y="443" font-family="Consolas,monospace" font-size="15" fill="#96d9cd">python-can  ·  standard IDs  ·  8-byte fault events</text>
+<path d="M738 423H771" stroke="#55cdb8" stroke-width="3"/><path d="M762 416L771 423L762 430" stroke="#55cdb8" stroke-width="3" fill="none"/>
+<rect x="773" y="392" width="177" height="120" rx="12" fill="#244055" stroke="#6e9aad" stroke-width="1.5"/>
+<text x="791" y="424" font-family="Segoe UI,Arial,sans-serif" font-size="22" fill="#f4f8fb" font-weight="700">Gateway</text>
+<text x="791" y="451" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#c5d8e6">Decodes CAN</text>
+<text x="791" y="477" font-family="Consolas,monospace" font-size="17" fill="#6ee1ca">→ JSON</text>
+<rect x="58" y="500" width="681" height="68" rx="10" fill="#172a3d" stroke="#354f62"/>
+<text x="76" y="527" font-family="Consolas,monospace" font-size="17" fill="#e1eaf0">Terminal output</text>
+<text x="76" y="553" font-family="Consolas,monospace" font-size="15" fill="#b1c5d6">{ "ecu": "A", "circuit": 1, "fault_code": 1, ... }</text>
+<path d="M865 512V533H738" fill="none" stroke="#55cdb8" stroke-width="2"/>
+<!-- Future boundary -->
+<rect x="1006" y="124" width="402" height="470" rx="15" fill="#1b2638" fill-opacity=".72" stroke="#7e839b" stroke-width="2" stroke-dasharray="9 8"/>
+<text x="1034" y="158" font-family="Consolas,monospace" font-size="17" letter-spacing="1.1" fill="#d3b88a">PLANNED  /  NOT IN v0.1</text>
+<rect x="1034" y="207" width="344" height="80" rx="12" fill="#2b3548" stroke="#6e778e"/>
+<text x="1052" y="238" font-family="Segoe UI,Arial,sans-serif" font-size="22" font-weight="700" fill="#eff3f7">MQTT / Mosquitto</text>
+<text x="1052" y="267" font-family="Consolas,monospace" font-size="16" fill="#c3cbdb">smartharness/ecu/.../faults</text>
+<path d="M1206 287V329" stroke="#d1ae75" stroke-width="2.5" stroke-dasharray="6 6"/>
+<path d="M1199 320L1206 329L1213 320" fill="none" stroke="#d1ae75" stroke-width="2.5"/>
+<rect x="1034" y="329" width="344" height="80" rx="12" fill="#2b3548" stroke="#6e778e"/>
+<text x="1052" y="360" font-family="Segoe UI,Arial,sans-serif" font-size="22" font-weight="700" fill="#eff3f7">Node-RED</text>
+<text x="1052" y="390" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#c3cbdb">Dashboard and alerts</text>
+<path d="M1206 409V451" stroke="#d1ae75" stroke-width="2.5" stroke-dasharray="6 6"/>
+<path d="M1199 442L1206 451L1213 442" fill="none" stroke="#d1ae75" stroke-width="2.5"/>
+<rect x="1034" y="451" width="344" height="80" rx="12" fill="#2b3548" stroke="#6e778e"/>
+<text x="1052" y="482" font-family="Segoe UI,Arial,sans-serif" font-size="22" font-weight="700" fill="#eff3f7">SQLite</text>
+<text x="1052" y="511" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#c3cbdb">Persistent fault history</text>
+<path d="M977 423H1000V247H1034" fill="none" stroke="#d1ae75" stroke-width="2.7" stroke-dasharray="7 7"/>
+<path d="M1024 240L1034 247L1024 254" fill="none" stroke="#d1ae75" stroke-width="2.7"/>
+<text x="44" y="631" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#9baec0">The diagram shows software roles. Physical ESP32, ADC, transceivers and Wi-Fi remain future integration work.</text>
+</svg>
