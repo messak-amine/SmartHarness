@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 390" role="img" aria-labelledby="title description">
+<title id="title">SmartHarness software foundation</title>
+<desc id="description">An editorial technical cover, with two independent ECU nodes connected to a virtual CAN bus and gateway.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#0b1420"/><stop offset="1" stop-color="#162337"/></linearGradient>
+  <pattern id="grid" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#5f7791" stroke-width="0.7" opacity=".13"/></pattern>
+  <linearGradient id="glow" x1="0" x2="1"><stop offset="0" stop-color="#38dac3" stop-opacity=".75"/><stop offset="1" stop-color="#8ed2eb" stop-opacity=".9"/></linearGradient>
+</defs>
+<rect width="1440" height="390" rx="18" fill="url(#bg)"/><rect width="1440" height="390" rx="18" fill="url(#grid)"/>
+<rect x="54" y="58" width="5" height="252" rx="2" fill="#40d6c0"/>
+<text x="86" y="90" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="600" letter-spacing="3.4" fill="#6ce2d0">EMBEDDED SYSTEMS  /  IoT + NETWORKS</text>
+<text x="82" y="177" font-family="Segoe UI,Arial,sans-serif" font-size="69" font-weight="700" letter-spacing="-2.1" fill="#f0f5fa">SmartHarness</text>
+<text x="86" y="222" font-family="Segoe UI,Arial,sans-serif" font-size="23" fill="#bed0df">Distributed circuit fault diagnostics</text>
+<text x="86" y="254" font-family="Segoe UI,Arial,sans-serif" font-size="23" fill="#bed0df">from local detection to network events.</text>
+<rect x="86" y="295" width="172" height="40" rx="8" fill="#233d4e" stroke="#4c7b80"/>
+<text x="172" y="322" font-family="Consolas,monospace" font-size="16" text-anchor="middle" fill="#91f0da">SIMULATOR  v0.1</text>
+<text x="277" y="321" font-family="Segoe UI,Arial,sans-serif" font-size="17" fill="#95aabe">SOFTWARE-ONLY MILESTONE</text>
+<path d="M735 319H1350" stroke="#6d879b" stroke-opacity=".35" stroke-width="2"/>
+<path d="M849 157V278 M1084 157V278" stroke="#43d9c3" stroke-opacity=".75" stroke-width="3" fill="none"/>
+
+<rect x="740" y="66" width="220" height="90" rx="13" fill="#1c3242" stroke="#3c7080" stroke-width="1.6"/>
+<rect x="996" y="66" width="220" height="90" rx="13" fill="#1c3242" stroke="#3c7080" stroke-width="1.6"/>
+<text x="763" y="98" fill="#f5f9fd" font-family="Segoe UI,Arial,sans-serif" font-weight="700" font-size="24">ECU A</text>
+<text x="1019" y="98" fill="#f5f9fd" font-family="Segoe UI,Arial,sans-serif" font-weight="700" font-size="24">ECU B</text>
+<text x="763" y="126" fill="#9eb6ca" font-family="Segoe UI,Arial,sans-serif" font-size="17">Lighting  /  circuits 1–2</text>
+<text x="1019" y="126" fill="#9eb6ca" font-family="Segoe UI,Arial,sans-serif" font-size="17">Equipment  /  circuits 3–4</text>
+<rect x="742" y="278" width="446" height="70" rx="12" fill="#123f43" stroke="#38bbaa" stroke-width="1.7"/>
+<text x="765" y="306" fill="#aaf4e6" font-family="Consolas,monospace" font-size="18">VIRTUAL CAN</text>
+<text x="765" y="331" fill="#e7faf7" font-family="Segoe UI,Arial,sans-serif" font-size="16">0x080  /  0x081   →   diagnostic frames</text>
+<path d="M1188 313H1239" stroke="#6ddcca" stroke-width="2.6"/><path d="M1232 305l10 8-10 8" fill="none" stroke="#6ddcca" stroke-width="2.6"/>
+<rect x="1247" y="270" width="154" height="86" rx="12" fill="#223446" stroke="#7d92a6"/>
+<text x="1264" y="302" fill="#f0f6fa" font-family="Segoe UI,Arial,sans-serif" font-size="21" font-weight="700">Gateway</text>
+<text x="1264" y="328" fill="#a6bacb" font-family="Consolas,monospace" font-size="16">CAN → JSON</text>
+<path d="M724 49H1402" stroke="#a3bbd1" stroke-opacity=".2" stroke-width="1"/>
+</svg>
