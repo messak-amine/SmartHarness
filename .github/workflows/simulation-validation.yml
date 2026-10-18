@@ -1,0 +1,23 @@
+name: SmartHarness Python validation
+
+on:
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install python-can
+        run: python -m pip install -r requirements.txt
+      - name: Run unit and virtual-CAN tests
+        run: python -m unittest discover -s tests -v
+      - name: Run original simulator
+        run: python -m simulator.main
+      - name: Run expanded simulation
+        run: python -m simulator.demo_validation
