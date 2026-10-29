@@ -157,3 +157,24 @@ Before merging, a contribution should **run locally, pass relevant tests, and pr
 - The planned hardware is a **low-voltage educational bench**. It must not be connected directly to a real 12 V vehicle harness or OBD-II system.
 
 **Engineering rule:** we label a feature as implemented only when it can be run and verified. Everything else stays on the roadmap.
+
+## Gateway & MQTT - partie 3
+
+Le bridge Python et le firmware ESP32 sont dans la branche `feat/gateway-mqtt`.
+Guide complet : [partie 3](docs/partie3-gateway-mqtt.md).
+
+```powershell
+py -3.12 -m venv .venv-gateway
+.\.venv-gateway\Scripts\python.exe -m pip install -r requirements.txt
+# Terminal 1
+& 'C:\Program Files\Mosquitto\mosquitto.exe' -c broker/mosquitto.conf -v
+# Terminal 2
+& 'C:\Program Files\Mosquitto\mosquitto_sub.exe' -t 'smartharness/#' -q 1 -v
+# Terminal 3
+.\.venv-gateway\Scripts\python.exe -m simulator.mqtt_demo
+```
+
+Cette demo envoie quatre pannes puis quatre recuperations via CAN virtuel et MQTT reel.
+Le CAN virtuel python-can fonctionne dans un seul processus. Le guide precise les
+limites de livraison, la configuration ESP32 et les tests. Node-RED et SQLite restent
+la responsabilite de la partie 4. Les descriptions v0.1 ci-dessus restent historiques.

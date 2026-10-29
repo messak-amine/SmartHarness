@@ -5,6 +5,9 @@ __pycache__/
 
 # Virtual environments
 .venv/
+.venv-gateway/
+.pio/
+gateway_config.h
 venv/
 
 # Local environment configuration
@@ -22,3 +25,6 @@ venv/
 # Temporary files
 *.log
 *.tmp
+
+.pio-core/
+broker/passwords

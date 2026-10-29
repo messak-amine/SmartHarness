@@ -109,3 +109,18 @@ Not yet implemented:
 - Diagnostic request/response
 - Reconnection and duplicate handling
 ```
+
+## Gateway implementation on feat/gateway-mqtt
+
+The seven fault JSON fields above are unchanged. Faults use QoS 1 and are not
+retained. The gateway status topic uses QoS 1, retain=true, and a JSON payload
+`{"status":"online"}` or `{"status":"offline"}`. Offline is also the Last Will.
+Run one gateway publisher for this shared status topic. This does not indicate
+individual ECU health because heartbeat payloads have not been defined.
+
+The Python bridge reconnects automatically and queues up to 256 outgoing MQTT
+messages in memory. The ESP32 application buffers 64 diagnostic events until
+acknowledged. Process/device restart or queue overflow can lose pending events.
+QoS 1 duplicates are intentionally preserved: a reliable cross-reboot identity
+requires a future coordinated protocol extension. No timestamp or boot ID is
+invented by this implementation. Node-RED/SQLite integration remains separate.

@@ -1,0 +1,261 @@
+Processing esp32-sim (platform: espressif32@6.10.0; board: esp32dev; framework: arduino)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32dev.html
+PLATFORM: Espressif 32 (6.10.0) > Espressif ESP32 Dev Module
+HARDWARE: ESP32 240MHz, 320KB RAM, 4MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b 
+ - tool-esptoolpy @ 1.40501.0 (4.5.1) 
+ - toolchain-xtensa-esp32 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 35 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- AsyncMqttClient @ 0.9.0
+|-- AsyncTCP @ 3.5.0
+|-- WiFi @ 2.0.0
+Building in release mode
+Compiling .pio\build\esp32-sim\src\main.cpp.o
+Building .pio\build\esp32-sim\bootloader.bin
+Generating partitions .pio\build\esp32-sim\partitions.bin
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 1 ELF section
+Successfully created esp32 image.
+Compiling .pio\build\esp32-sim\libf2b\AsyncTCP\AsyncTCP.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\ConnAckPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\Out\Connect.cpp.o
+.pio/libdeps/esp32-sim/AsyncMqttClient/src/AsyncMqttClient.cpp: In member function 'void AsyncMqttClient::disconnect(bool)':
+.pio/libdeps/esp32-sim/AsyncMqttClient/src/AsyncMqttClient.cpp:712:23: warning: 'void AsyncClient::close(bool)' is deprecated: Use AsyncClient::close() instead [-Wdeprecated-declarations]
+     _client.close(true);
+                       ^
+In file included from .pio/libdeps/esp32-sim/AsyncMqttClient/src/AsyncMqttClient.hpp:13,
+                 from .pio/libdeps/esp32-sim/AsyncMqttClient/src/AsyncMqttClient.cpp:1:
+.pio/libdeps/esp32-sim/AsyncTCP/src/AsyncTCP.h:109:8: note: declared here
+   void close(bool now) {
+        ^~~~~
+Archiving .pio\build\esp32-sim\libf2b\libAsyncTCP.a
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\Out\Disconn.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\Out\OutPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\Out\PingReq.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\Out\PubAck.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\Out\Publish.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\Out\Subscribe.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\Out\Unsubscribe.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\PingRespPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\PubAckPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\PubCompPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\PubRecPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\PubRelPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\PublishPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\SubAckPacket.cpp.o
+Compiling .pio\build\esp32-sim\libfc0\AsyncMqttClient\AsyncMqttClient\Packets\UnsubAckPacket.cpp.o
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFi.cpp.o
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFiAP.cpp.o
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFiClient.cpp.o
+Archiving .pio\build\esp32-sim\libfc0\libAsyncMqttClient.a
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFiGeneric.cpp.o
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFiMulti.cpp.o
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFiSTA.cpp.o
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFiScan.cpp.o
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFiServer.cpp.o
+Compiling .pio\build\esp32-sim\libcec\WiFi\WiFiUdp.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\Esp.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\FirmwareMSC.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\FunctionalInterrupt.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\HWCDC.cpp.o
+Archiving .pio\build\esp32-sim\libcec\libWiFi.a
+Compiling .pio\build\esp32-sim\FrameworkArduino\HardwareSerial.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\IPAddress.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\IPv6Address.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\MD5Builder.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\Print.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\Stream.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\StreamString.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\Tone.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\USB.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\USBCDC.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\USBMSC.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\WMath.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\WString.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\base64.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\cbuf.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-adc.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-bt.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-cpu.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-dac.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-gpio.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-i2c-slave.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-i2c.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-ledc.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-matrix.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-misc.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-psram.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-rgb-led.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-rmt.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-sigmadelta.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-spi.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-time.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-timer.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-tinyusb.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-touch.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\esp32-hal-uart.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\firmware_msc_fat.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\libb64\cdecode.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\libb64\cencode.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\main.cpp.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\stdlib_noniso.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\wiring_pulse.c.o
+Compiling .pio\build\esp32-sim\FrameworkArduino\wiring_shift.c.o
+Archiving .pio\build\esp32-sim\libFrameworkArduino.a
+Linking .pio\build\esp32-sim\firmware.elf
+Retrieving maximum program size .pio\build\esp32-sim\firmware.elf
+Checking size .pio\build\esp32-sim\firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]  14.0% (used 45796 bytes from 327680 bytes)
+Flash: [======    ]  58.5% (used 766409 bytes from 1310720 bytes)
+Building .pio\build\esp32-sim\firmware.bin
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 27 ELF sections
+Successfully created esp32 image.
+======================== [SUCCESS] Took 268.37 seconds ========================
+
+Processing esp32-can (platform: espressif32@6.10.0; board: esp32dev; framework: arduino)
+--------------------------------------------------------------------------------
+Removing unused dependencies...
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32dev.html
+PLATFORM: Espressif 32 (6.10.0) > Espressif ESP32 Dev Module
+HARDWARE: ESP32 240MHz, 320KB RAM, 4MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b 
+ - tool-esptoolpy @ 1.40501.0 (4.5.1) 
+ - toolchain-xtensa-esp32 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 35 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- AsyncMqttClient @ 0.9.0
+|-- AsyncTCP @ 3.5.0
+|-- WiFi @ 2.0.0
+Building in release mode
+Compiling .pio\build\esp32-can\src\main.cpp.o
+Building .pio\build\esp32-can\bootloader.bin
+Generating partitions .pio\build\esp32-can\partitions.bin
+Compiling .pio\build\esp32-can\lib28f\AsyncTCP\AsyncTCP.cpp.o
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 1 ELF section
+Successfully created esp32 image.
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\ConnAckPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\Out\Connect.cpp.o
+.pio/libdeps/esp32-can/AsyncMqttClient/src/AsyncMqttClient.cpp: In member function 'void AsyncMqttClient::disconnect(bool)':
+.pio/libdeps/esp32-can/AsyncMqttClient/src/AsyncMqttClient.cpp:712:23: warning: 'void AsyncClient::close(bool)' is deprecated: Use AsyncClient::close() instead [-Wdeprecated-declarations]
+     _client.close(true);
+                       ^
+In file included from .pio/libdeps/esp32-can/AsyncMqttClient/src/AsyncMqttClient.hpp:13,
+                 from .pio/libdeps/esp32-can/AsyncMqttClient/src/AsyncMqttClient.cpp:1:
+.pio/libdeps/esp32-can/AsyncTCP/src/AsyncTCP.h:109:8: note: declared here
+   void close(bool now) {
+        ^~~~~
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\Out\Disconn.cpp.o
+Archiving .pio\build\esp32-can\lib28f\libAsyncTCP.a
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\Out\OutPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\Out\PingReq.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\Out\PubAck.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\Out\Publish.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\Out\Subscribe.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\Out\Unsubscribe.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\PingRespPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\PubAckPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\PubCompPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\PubRecPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\PubRelPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\PublishPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\SubAckPacket.cpp.o
+Compiling .pio\build\esp32-can\lib441\AsyncMqttClient\AsyncMqttClient\Packets\UnsubAckPacket.cpp.o
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFi.cpp.o
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFiAP.cpp.o
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFiClient.cpp.o
+Archiving .pio\build\esp32-can\lib441\libAsyncMqttClient.a
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFiGeneric.cpp.o
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFiMulti.cpp.o
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFiSTA.cpp.o
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFiScan.cpp.o
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFiServer.cpp.o
+Compiling .pio\build\esp32-can\libcec\WiFi\WiFiUdp.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\Esp.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\FirmwareMSC.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\FunctionalInterrupt.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\HWCDC.cpp.o
+Archiving .pio\build\esp32-can\libcec\libWiFi.a
+Compiling .pio\build\esp32-can\FrameworkArduino\HardwareSerial.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\IPAddress.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\IPv6Address.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\MD5Builder.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\Print.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\Stream.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\StreamString.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\Tone.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\USB.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\USBCDC.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\USBMSC.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\WMath.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\WString.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\base64.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\cbuf.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-adc.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-bt.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-cpu.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-dac.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-gpio.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-i2c-slave.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-i2c.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-ledc.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-matrix.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-misc.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-psram.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-rgb-led.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-rmt.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-sigmadelta.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-spi.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-time.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-timer.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-tinyusb.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-touch.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\esp32-hal-uart.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\firmware_msc_fat.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\libb64\cdecode.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\libb64\cencode.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\main.cpp.o
+Compiling .pio\build\esp32-can\FrameworkArduino\stdlib_noniso.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\wiring_pulse.c.o
+Compiling .pio\build\esp32-can\FrameworkArduino\wiring_shift.c.o
+Archiving .pio\build\esp32-can\libFrameworkArduino.a
+Linking .pio\build\esp32-can\firmware.elf
+Retrieving maximum program size .pio\build\esp32-can\firmware.elf
+Checking size .pio\build\esp32-can\firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]  14.0% (used 45852 bytes from 327680 bytes)
+Flash: [======    ]  58.9% (used 772321 bytes from 1310720 bytes)
+Building .pio\build\esp32-can\firmware.bin
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 27 ELF sections
+Successfully created esp32 image.
+======================== [SUCCESS] Took 239.36 seconds ========================
+
+Environment    Status    Duration
+-------------  --------  ------------
+esp32-sim      SUCCESS   00:04:28.370
+esp32-can      SUCCESS   00:03:59.357
+========================= 2 succeeded in 00:08:27.727 =========================
