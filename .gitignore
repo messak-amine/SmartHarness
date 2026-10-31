@@ -22,3 +22,8 @@ venv/
 # Temporary files
 *.log
 *.tmp
+
+# ESP-IDF generated files
+firmware/ecu_firmware/build/
+firmware/ecu_firmware/sdkconfig
+firmware/ecu_firmware/sdkconfig.old
