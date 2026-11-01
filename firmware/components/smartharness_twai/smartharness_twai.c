@@ -13,17 +13,22 @@
 static twai_node_handle_t s_twai_node = NULL;
 static QueueHandle_t s_rx_queue = NULL;
 
+// Count frames lost when the RX queue is full.
+static volatile uint32_t s_rx_dropped = 0;
+
+// Persistent TX storage.
 static twai_frame_t s_tx_message;
 static uint8_t s_tx_data[SH_CAN_PAYLOAD_SIZE];
 static bool s_tx_pending = false;
 
+// --------------------------------------------------
+// 1. TWAI Reception Callback
+// --------------------------------------------------
 
-// Receive callback: executed in interrupt context.
 static bool sh_twai_rx_callback(
     twai_node_handle_t handle,
     const twai_rx_done_event_data_t *edata,
-    void *user_ctx
-)
+    void *user_ctx)
 {
     (void)edata;
     (void)user_ctx;
@@ -32,10 +37,10 @@ static bool sh_twai_rx_callback(
 
     twai_frame_t rx = {
         .buffer = buffer,
-        .buffer_len = sizeof(buffer)
-    };
+        .buffer_len = sizeof(buffer)};
 
-    if (twai_node_receive_from_isr(handle, &rx) != ESP_OK) {
+    if (twai_node_receive_from_isr(handle, &rx) != ESP_OK)
+    {
         return false;
     }
 
@@ -43,7 +48,8 @@ static bool sh_twai_rx_callback(
     if (rx.header.ide ||
         rx.header.rtr ||
         rx.header.fdf ||
-        rx.header.dlc > SH_CAN_PAYLOAD_SIZE) {
+        rx.header.dlc > SH_CAN_PAYLOAD_SIZE)
+    {
         return false;
     }
 
@@ -57,42 +63,53 @@ static bool sh_twai_rx_callback(
 
     BaseType_t task_woken = pdFALSE;
 
-    if (s_rx_queue != NULL) {
-        xQueueSendFromISR(
-            s_rx_queue,
-            &frame,
-            &task_woken
-        );
+    if (s_rx_queue != NULL)
+    {
+
+        if (xQueueSendFromISR(
+                s_rx_queue,
+                &frame,
+                &task_woken) != pdTRUE)
+        {
+
+            // The RX queue is full.
+            s_rx_dropped++;
+        }
     }
 
     return task_woken == pdTRUE;
 }
 
+// --------------------------------------------------
+// 2. TWAI Initialization
+// --------------------------------------------------
 
-// Initialize TWAI controller.
 esp_err_t sh_twai_start(const sh_twai_config_t *config)
 {
-    if (config == NULL) {
+    if (config == NULL)
+    {
         return ESP_ERR_INVALID_ARG;
     }
 
-    if (s_twai_node != NULL) {
+    if (s_twai_node != NULL)
+    {
         return ESP_ERR_INVALID_STATE;
     }
 
     if (config->tx_gpio < 0 ||
         config->rx_gpio < 0 ||
         config->tx_gpio == config->rx_gpio ||
-        config->bitrate != SH_TWAI_BITRATE) {
+        config->bitrate != SH_TWAI_BITRATE)
+    {
         return ESP_ERR_INVALID_ARG;
     }
 
     s_rx_queue = xQueueCreate(
         SH_TWAI_RX_QUEUE_SIZE,
-        sizeof(sh_can_frame_t)
-    );
+        sizeof(sh_can_frame_t));
 
-    if (s_rx_queue == NULL) {
+    if (s_rx_queue == NULL)
+    {
         return ESP_ERR_NO_MEM;
     }
 
@@ -108,39 +125,41 @@ esp_err_t sh_twai_start(const sh_twai_config_t *config)
 
     esp_err_t err = twai_new_node_onchip(
         &node_config,
-        &s_twai_node
-    );
+        &s_twai_node);
 
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         goto cleanup;
     }
 
     twai_event_callbacks_t callbacks = {
-        .on_rx_done = sh_twai_rx_callback
-    };
+        .on_rx_done = sh_twai_rx_callback};
 
     err = twai_node_register_event_callbacks(
         s_twai_node,
         &callbacks,
-        NULL
-    );
+        NULL);
 
-    if (err != ESP_OK) {
-        goto cleanup;
-    }
-
-    err = twai_node_enable(s_twai_node);
-
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         goto cleanup;
     }
 
     s_tx_pending = false;
+    s_rx_dropped = 0;
+
+    err = twai_node_enable(s_twai_node);
+
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
 
     return ESP_OK;
 
 cleanup:
-    if (s_twai_node != NULL) {
+    if (s_twai_node != NULL)
+    {
         twai_node_delete(s_twai_node);
         s_twai_node = NULL;
     }
@@ -151,34 +170,40 @@ cleanup:
     return err;
 }
 
+// --------------------------------------------------
+// 3. CAN Frame Transmission
+// --------------------------------------------------
 
-// Transmit SmartHarness fault frame.
 esp_err_t sh_twai_send(
     const sh_can_frame_t *frame,
-    int timeout_ms
-)
+    int timeout_ms)
 {
-    if (s_twai_node == NULL) {
+    if (s_twai_node == NULL)
+    {
         return ESP_ERR_INVALID_STATE;
     }
 
-    if (frame == NULL || timeout_ms < -1) {
+    if (frame == NULL || timeout_ms < -1)
+    {
         return ESP_ERR_INVALID_ARG;
     }
 
     sh_fault_event_t decoded;
 
-    if (!sh_can_decode_fault(frame, &decoded)) {
+    if (!sh_can_decode_fault(frame, &decoded))
+    {
         return ESP_ERR_INVALID_ARG;
     }
 
-    if (s_tx_pending) {
+    // Wait for a previous pending transmission.
+    if (s_tx_pending)
+    {
         esp_err_t err = twai_node_transmit_wait_all_done(
             s_twai_node,
-            timeout_ms
-        );
+            timeout_ms);
 
-        if (err != ESP_OK) {
+        if (err != ESP_OK)
+        {
             return err;
         }
 
@@ -188,8 +213,7 @@ esp_err_t sh_twai_send(
     memcpy(
         s_tx_data,
         frame->data,
-        SH_CAN_PAYLOAD_SIZE
-    );
+        SH_CAN_PAYLOAD_SIZE);
 
     s_tx_message = (twai_frame_t){0};
 
@@ -203,68 +227,87 @@ esp_err_t sh_twai_send(
     esp_err_t err = twai_node_transmit(
         s_twai_node,
         &s_tx_message,
-        timeout_ms
-    );
+        timeout_ms);
 
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         return err;
     }
 
     s_tx_pending = true;
 
+    // Wait for transmission completion.
     err = twai_node_transmit_wait_all_done(
         s_twai_node,
-        timeout_ms
-    );
+        timeout_ms);
 
-    if (err == ESP_OK) {
+    if (err == ESP_OK)
+    {
         s_tx_pending = false;
     }
 
     return err;
 }
 
+// --------------------------------------------------
+// 4. CAN Frame Reception
+// --------------------------------------------------
 
-// Receive CAN frame from FreeRTOS queue.
 esp_err_t sh_twai_receive(
     sh_can_frame_t *frame,
-    int timeout_ms
-)
+    int timeout_ms)
 {
-    if (frame == NULL || timeout_ms < -1) {
+    if (frame == NULL || timeout_ms < -1)
+    {
         return ESP_ERR_INVALID_ARG;
     }
 
-    if (s_twai_node == NULL || s_rx_queue == NULL) {
+    if (s_twai_node == NULL || s_rx_queue == NULL)
+    {
         return ESP_ERR_INVALID_STATE;
     }
 
     TickType_t ticks = timeout_ms == -1
-        ? portMAX_DELAY
-        : pdMS_TO_TICKS(timeout_ms);
+                           ? portMAX_DELAY
+                           : pdMS_TO_TICKS(timeout_ms);
 
-    if (xQueueReceive(s_rx_queue, frame, ticks) == pdTRUE) {
+    if (xQueueReceive(s_rx_queue, frame, ticks) == pdTRUE)
+    {
         return ESP_OK;
     }
 
     return ESP_ERR_TIMEOUT;
 }
 
+// --------------------------------------------------
+// 5. RX Dropped Frame Counter
+// --------------------------------------------------
 
-// Stop controller and release resources.
+uint32_t sh_twai_rx_dropped_count(void)
+{
+    return s_rx_dropped;
+}
+
+// --------------------------------------------------
+// 6. Stop TWAI Controller
+// --------------------------------------------------
+
 esp_err_t sh_twai_stop(void)
 {
-    if (s_twai_node == NULL) {
+    if (s_twai_node == NULL)
+    {
         return ESP_ERR_INVALID_STATE;
     }
 
-    if (s_tx_pending) {
+    // Wait before releasing TX storage.
+    if (s_tx_pending)
+    {
         esp_err_t err = twai_node_transmit_wait_all_done(
             s_twai_node,
-            1000
-        );
+            1000);
 
-        if (err != ESP_OK) {
+        if (err != ESP_OK)
+        {
             return err;
         }
 
@@ -273,13 +316,15 @@ esp_err_t sh_twai_stop(void)
 
     esp_err_t err = twai_node_disable(s_twai_node);
 
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         return err;
     }
 
     err = twai_node_delete(s_twai_node);
 
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         return err;
     }
 
