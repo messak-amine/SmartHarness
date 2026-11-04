@@ -1,0 +1,25 @@
+name: Mission 4 Dashboard and SQLite
+on:
+  pull_request:
+    branches: [develop]
+    paths: ['dashboard/**', '.github/workflows/dashboard-validation.yml']
+  workflow_dispatch:
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: sudo apt-get update && sudo apt-get install -y mosquitto
+      - run: npm ci
+      - run: npm test
+      - name: Verify generated flows
+        run: npm run build:flows && git diff --exit-code -- flows.json
+      - run: npm run test:integration

@@ -1,0 +1,549 @@
+[
+  {
+    "id": "mission4",
+    "type": "tab",
+    "label": "SmartHarness · Mission 4",
+    "disabled": false,
+    "info": "Use dashboard/settings.js. No ECU commands or invented telemetry."
+  },
+  {
+    "id": "broker",
+    "type": "mqtt-broker",
+    "z": "mission4",
+    "name": "Mosquitto local",
+    "x": 480,
+    "y": 60,
+    "broker": "${MQTT_HOST}",
+    "port": "${MQTT_PORT}",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "15",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "wires": []
+  },
+  {
+    "id": "db",
+    "type": "sqlitedb",
+    "z": "mission4",
+    "name": "Historique persistant",
+    "x": 720,
+    "y": 60,
+    "db": "${SH_DB_PATH}",
+    "mode": "RWC",
+    "wires": []
+  },
+  {
+    "id": "mqtt-a",
+    "type": "mqtt in",
+    "z": "mission4",
+    "name": "Pannes ECU A",
+    "x": 960,
+    "y": 60,
+    "topic": "smartharness/ecu/a/faults",
+    "qos": "1",
+    "datatype": "utf8",
+    "broker": "broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "wires": [
+      [
+        "validate"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt-b",
+    "type": "mqtt in",
+    "z": "mission4",
+    "name": "Pannes ECU B",
+    "x": 240,
+    "y": 150,
+    "topic": "smartharness/ecu/b/faults",
+    "qos": "1",
+    "datatype": "utf8",
+    "broker": "broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "wires": [
+      [
+        "validate"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt-gateway",
+    "type": "mqtt in",
+    "z": "mission4",
+    "name": "Statut Gateway",
+    "x": 480,
+    "y": 150,
+    "topic": "smartharness/gateway/status",
+    "qos": "1",
+    "datatype": "utf8",
+    "broker": "broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "wires": [
+      [
+        "gateway-status"
+      ]
+    ]
+  },
+  {
+    "id": "validate",
+    "type": "function",
+    "z": "mission4",
+    "name": "Valider et dater la réception",
+    "x": 720,
+    "y": 150,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\n\ntry { msg.event=sh.validateEvent(msg.topic,msg.payload); }\ncatch(e) { s.rejected++; s.last_error=e.message; node.warn(e.message); return null; }\nmsg.received_at=new Date().toISOString();\nmsg.params={$received_at:msg.received_at,$topic:msg.topic};\nfor(const [key,value] of Object.entries(msg.event)) msg.params['$'+key]=typeof value==='boolean'?Number(value):value;\nif(s.pending.length>=256) {\n  s.failed_writes++; s.last_error='File SQLite pleine : réception non enregistrée'; node.warn(s.last_error);\n  return null;\n}\ns.pending.push(msg);\nreturn sh.nextWrite(s);",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "insert"
+      ]
+    ]
+  },
+  {
+    "id": "gateway-status",
+    "type": "function",
+    "z": "mission4",
+    "name": "Statut du Gateway uniquement",
+    "x": 960,
+    "y": 150,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\n\ntry { s.gateway=sh.validateStatus(msg.payload); s.gateway_received_at=new Date().toISOString(); if(s.gateway==='offline') s.circuits.forEach(c=>c.fresh=false); }\ncatch(e) { s.rejected++; s.last_error=e.message; node.warn(e.message); }\nreturn null;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": []
+  },
+  {
+    "id": "mqtt-state",
+    "type": "status",
+    "z": "mission4",
+    "name": "Connexion au broker",
+    "x": 240,
+    "y": 240,
+    "scope": [
+      "mqtt-a"
+    ],
+    "wires": [
+      [
+        "mqtt-state-update"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt-state-update",
+    "type": "function",
+    "z": "mission4",
+    "name": "Ne pas confondre MQTT et ECU",
+    "x": 480,
+    "y": 240,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\n\nconst connected=msg.status.text==='node-red:common.status.connected'||msg.status.text==='connected';\ns.mqtt=connected?'connected':'disconnected';\nif(!connected) { s.gateway='unknown'; s.circuits.forEach(c=>c.fresh=false); }\nreturn null;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": []
+  },
+  {
+    "id": "initialize",
+    "type": "inject",
+    "z": "mission4",
+    "name": "Créer le schéma au démarrage",
+    "x": 720,
+    "y": 240,
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "once": true,
+    "onceDelay": 0.5,
+    "payload": "",
+    "payloadType": "date",
+    "wires": [
+      [
+        "schema"
+      ]
+    ]
+  },
+  {
+    "id": "schema",
+    "type": "function",
+    "z": "mission4",
+    "name": "Schéma SQLite",
+    "x": 960,
+    "y": 240,
+    "func": "msg.topic=global.get('shSchema'); return msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "schema-db"
+      ]
+    ]
+  },
+  {
+    "id": "schema-db",
+    "type": "sqlite",
+    "z": "mission4",
+    "name": "Initialiser SQLite",
+    "x": 240,
+    "y": 330,
+    "mydb": "db",
+    "sqlquery": "batch",
+    "sql": "",
+    "wires": [
+      [
+        "initialized"
+      ]
+    ]
+  },
+  {
+    "id": "initialized",
+    "type": "function",
+    "z": "mission4",
+    "name": "Base prête, vider la file de démarrage",
+    "x": 480,
+    "y": 330,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\n\ns.ready=true; s.database='ready';\nreturn [sh.nextWrite(s),{}];",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "insert"
+      ],
+      [
+        "read-history"
+      ]
+    ]
+  },
+  {
+    "id": "insert",
+    "type": "sqlite",
+    "z": "mission4",
+    "name": "Enregistrer chaque réception",
+    "x": 720,
+    "y": 330,
+    "mydb": "db",
+    "sqlquery": "prepared",
+    "sql": "INSERT INTO fault_events (received_at,topic,ecu,circuit,fault_code,active,voltage_mv,command_on,seq) VALUES ($received_at,$topic,$ecu,$circuit,$fault_code,$active,$voltage_mv,$command_on,$seq)",
+    "wires": [
+      [
+        "stored"
+      ]
+    ]
+  },
+  {
+    "id": "stored",
+    "type": "function",
+    "z": "mission4",
+    "name": "Confirmer seulement après écriture",
+    "x": 960,
+    "y": 330,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\n\ns.database='ready'; sh.acceptStored(s,msg.event,msg.received_at); s.writing=false;\nreturn [sh.nextWrite(s),{}];",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "insert"
+      ],
+      [
+        "read-history"
+      ]
+    ]
+  },
+  {
+    "id": "read-history",
+    "type": "sqlite",
+    "z": "mission4",
+    "name": "Relire les archives et le total",
+    "x": 240,
+    "y": 420,
+    "mydb": "db",
+    "sqlquery": "fixed",
+    "sql": "SELECT *, (SELECT COUNT(*) FROM fault_events) AS total_count FROM fault_events WHERE event_id IN (SELECT event_id FROM fault_events ORDER BY event_id DESC LIMIT 200) OR event_id IN (SELECT MAX(event_id) FROM fault_events GROUP BY circuit) ORDER BY event_id DESC",
+    "wires": [
+      [
+        "history"
+      ]
+    ]
+  },
+  {
+    "id": "history",
+    "type": "function",
+    "z": "mission4",
+    "name": "Archives distinctes de l’état actuel",
+    "x": 480,
+    "y": 420,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\nsh.restoreHistory(s,msg.payload); return null;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": []
+  },
+  {
+    "id": "db-errors",
+    "type": "catch",
+    "z": "mission4",
+    "name": "Erreurs SQLite",
+    "x": 720,
+    "y": 420,
+    "scope": [
+      "schema-db",
+      "insert",
+      "read-history"
+    ],
+    "uncaught": false,
+    "wires": [
+      [
+        "db-error"
+      ]
+    ]
+  },
+  {
+    "id": "db-error",
+    "type": "function",
+    "z": "mission4",
+    "name": "Signaler les erreurs de stockage",
+    "x": 960,
+    "y": 420,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\n\ns.database='error'; s.last_error='SQLite : '+(msg.error?.message||'erreur inconnue');\nnode.warn(s.last_error);\nif(msg.error?.source?.id==='insert') { s.failed_writes++; s.writing=false; return sh.nextWrite(s); }\nreturn null;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "insert"
+      ]
+    ]
+  },
+  {
+    "id": "tick",
+    "type": "inject",
+    "z": "mission4",
+    "name": "Actualiser l’affichage",
+    "x": 240,
+    "y": 510,
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "1",
+    "once": true,
+    "onceDelay": 1,
+    "payload": "",
+    "payloadType": "date",
+    "wires": [
+      [
+        "snapshot"
+      ]
+    ]
+  },
+  {
+    "id": "snapshot",
+    "type": "function",
+    "z": "mission4",
+    "name": "État de supervision",
+    "x": 480,
+    "y": 510,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\nmsg.payload=sh.snapshot(s); return msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "dashboard-ui"
+      ]
+    ]
+  },
+  {
+    "id": "api",
+    "type": "http in",
+    "z": "mission4",
+    "name": "État local en JSON (lecture seule)",
+    "x": 720,
+    "y": 510,
+    "url": "/api/snapshot",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "wires": [
+      [
+        "api-snapshot"
+      ]
+    ]
+  },
+  {
+    "id": "api-snapshot",
+    "type": "function",
+    "z": "mission4",
+    "name": "Instantané pour vérification",
+    "x": 960,
+    "y": 510,
+    "func": "const s=global.get('shState'); const sh=global.get('sh');\nmsg.payload=sh.snapshot(s); msg.headers={'Content-Type':'application/json','Cache-Control':'no-store'}; return msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "wires": [
+      [
+        "api-response"
+      ]
+    ]
+  },
+  {
+    "id": "api-response",
+    "type": "http response",
+    "z": "mission4",
+    "name": "Réponse",
+    "x": 240,
+    "y": 600,
+    "statusCode": "",
+    "headers": {},
+    "wires": []
+  },
+  {
+    "id": "ui-base",
+    "type": "ui-base",
+    "z": "mission4",
+    "name": "SmartHarness",
+    "x": 480,
+    "y": 600,
+    "path": "/dashboard",
+    "appIcon": "",
+    "includeClientData": true,
+    "acceptsClientConfig": [],
+    "showPathInSidebar": false,
+    "headerContent": "page",
+    "navigationStyle": "none",
+    "titleBarStyle": "default",
+    "showReconnectNotification": true,
+    "notificationDisplayTime": 5,
+    "wires": []
+  },
+  {
+    "id": "ui-theme",
+    "type": "ui-theme",
+    "z": "mission4",
+    "name": "SmartHarness clair",
+    "x": 720,
+    "y": 600,
+    "colors": {
+      "surface": "#ffffff",
+      "primary": "#246f64",
+      "bgPage": "#f4f7fa",
+      "groupBg": "#f4f7fa",
+      "groupOutline": "#f4f7fa"
+    },
+    "sizes": {
+      "density": "default",
+      "pagePadding": "16px",
+      "groupGap": "16px",
+      "groupBorderRadius": "8px",
+      "widgetGap": "12px"
+    },
+    "wires": []
+  },
+  {
+    "id": "ui-page",
+    "type": "ui-page",
+    "z": "mission4",
+    "name": "Supervision",
+    "x": 960,
+    "y": 600,
+    "ui": "ui-base",
+    "path": "/monitoring",
+    "icon": "car",
+    "layout": "grid",
+    "theme": "ui-theme",
+    "order": 1,
+    "className": "",
+    "visible": true,
+    "disabled": false,
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": 0,
+        "cols": 12
+      }
+    ],
+    "wires": []
+  },
+  {
+    "id": "ui-group",
+    "type": "ui-group",
+    "z": "mission4",
+    "name": "Diagnostic",
+    "x": 240,
+    "y": 690,
+    "page": "ui-page",
+    "width": 12,
+    "height": 1,
+    "order": 1,
+    "showTitle": false,
+    "className": "",
+    "visible": true,
+    "disabled": false,
+    "groupType": "default",
+    "wires": []
+  },
+  {
+    "id": "dashboard-ui",
+    "type": "ui-template",
+    "z": "mission4",
+    "name": "Circuits et historique",
+    "x": 480,
+    "y": 690,
+    "group": "ui-group",
+    "page": "",
+    "ui": "",
+    "order": 1,
+    "width": 12,
+    "height": 0,
+    "head": "",
+    "format": "<template>\n  <main class=\"sh\" v-if=\"msg && msg.payload\">\n    <header><div><p class=\"eyebrow\">SMARTHARNESS · MISSION 4</p><h1>Diagnostic du faisceau</h1><p>Derniers événements reçus · ECU A et ECU B</p></div><span class=\"pill\">{{ data.total }} réceptions enregistrées</span></header>\n    <section class=\"connections\">\n      <div><small>Connexion MQTT</small><strong :class=\"data.mqtt === 'connected' ? 'good' : 'bad'\">{{ data.mqtt === 'connected' ? 'Connecté' : 'Déconnecté' }}</strong></div>\n      <div><small>Gateway</small><strong>{{ data.gateway === 'online' ? 'En ligne' : data.gateway === 'offline' ? 'Hors ligne' : 'Inconnu' }}</strong></div>\n      <div><small>Base SQLite</small><strong :class=\"data.database === 'ready' ? 'good' : 'bad'\">{{ data.database === 'ready' ? 'Disponible' : data.database }}</strong></div>\n      <div><small>Présence des ECU</small><strong>Non déterminée</strong></div>\n    </section>\n    <p class=\"notice\">Le Gateway ne confirme pas la présence des ECU. Les tensions sont celles des derniers événements, pas des mesures continues.</p>\n    <section class=\"summary\" aria-label=\"Résumé des derniers diagnostics\">\n      <div class=\"summary-item summary-fault\"><span class=\"summary-number\" data-summary=\"fault\">{{ summary.fault }}</span><div><strong>Circuits en panne</strong><small>Dernier diagnostic : panne active</small></div></div>\n      <div class=\"summary-item summary-recovered\"><span class=\"summary-number\" data-summary=\"recovered\">{{ summary.recovered }}</span><div><strong>Résolutions reçues</strong><small>État de santé ECU non vérifié</small></div></div>\n      <div class=\"summary-item summary-unknown\"><span class=\"summary-number\" data-summary=\"unknown\">{{ summary.unknown }}</span><div><strong>États inconnus</strong><small>Aucun diagnostic dans cette exécution</small></div></div>\n    </section>\n    <p class=\"notice summary-caption\">Répartition des quatre circuits selon leur dernier événement enregistré, même si la communication n’est plus confirmée. Ce ne sont pas des compteurs d’événements.</p>\n    <div role=\"alert\" class=\"error\" v-if=\"data.last_error\">Dernière anomalie : {{ data.last_error }} · Messages rejetés : {{ data.rejected }} · Écritures échouées : {{ data.failed_writes }}</div>\n    <section class=\"circuits\">\n      <article v-for=\"c in data.circuits\" :key=\"c.circuit\" :class=\"['circuit', c.status.toLowerCase()]\">\n        <small>ECU {{ c.ecu }} · CIRCUIT {{ c.circuit }}</small><h2>{{ c.name }}</h2>\n        <strong class=\"diagnosis\"><span class=\"status-symbol\" aria-hidden=\"true\">{{ c.status === 'UNKNOWN' ? '?' : c.status === 'RECOVERED' ? '✓' : '!' }}</span>{{ label(c.status) }}</strong>\n        <template v-if=\"c.last\">\n          <p class=\"measurement\">{{ c.last.voltage_mv }} <span>mV · commande {{ c.last.command_on ? 'ON' : 'OFF' }}</span></p>\n          <small>Reçu : {{ time(c.last.received_at) }}</small>\n          <p class=\"health-note\" v-if=\"c.status === 'RECOVERED'\">Résolution signalée par l’ECU ; sa présence et sa santé actuelles ne sont pas vérifiées.</p>\n          <p class=\"notice\" v-if=\"c.stale\">Dernier état connu · communication non confirmée</p>\n        </template>\n        <p v-else>Aucun événement reçu pendant cette exécution.</p>\n        <small v-if=\"!c.last && c.historical\">Archive : {{ c.historical.active ? 'panne active' : 'résolution' }}, reçue {{ time(c.historical.received_at) }}. État actuel inconnu.</small>\n      </article>\n    </section>\n    <section class=\"history\"><div class=\"history-title\"><h2>Historique des diagnostics</h2><label>Circuit <select v-model=\"filter\"><option value=\"all\">Tous</option><option v-for=\"c in data.circuits\" :value=\"String(c.circuit)\">{{ c.name }}</option></select></label></div>\n      <p>200 dernières réceptions · horodatage UTC à la réception par Node-RED, pas à l’apparition de la panne. Les répétitions sont conservées.</p>\n      <div class=\"table-scroll\"><table><thead><tr><th>N°</th><th>Réception UTC</th><th>ECU / circuit</th><th>Diagnostic</th><th>Tension</th><th>Commande</th><th>Séquence</th></tr></thead><tbody>\n        <tr v-for=\"row in rows\" :key=\"row.event_id\"><td>{{ row.event_id }}</td><td>{{ time(row.received_at) }}</td><td>{{ row.ecu }} / {{ row.circuit }}</td><td><span :class=\"['event-badge', row.active ? 'event-fault' : 'event-recovered']\">{{ row.fault_code === 0 ? 'Résolution reçue' : row.fault_code === 1 ? 'Déconnexion' : 'Intermittence (code 2)' }}</span></td><td>{{ row.voltage_mv }} mV</td><td>{{ row.command_on ? 'ON' : 'OFF' }}</td><td>{{ row.seq }}</td></tr>\n        <tr v-if=\"!rows.length\"><td colspan=\"7\">Aucun événement enregistré pour ce filtre.</td></tr>\n      </tbody></table></div>\n    </section>\n  </main>\n  <p v-else>Chargement du diagnostic…</p>\n</template>\n<script>\nexport default {\n  data() { return { filter: 'all' }; },\n  computed: {\n    data() { return this.msg.payload; },\n    summary() {\n      return this.data.circuits.reduce((counts, circuit) => {\n        if (circuit.status === 'FAULT' || circuit.status === 'INTERMITTENT') counts.fault++;\n        else if (circuit.status === 'RECOVERED') counts.recovered++;\n        else counts.unknown++;\n        return counts;\n      }, { fault: 0, recovered: 0, unknown: 0 });\n    },\n    rows() { return this.data.history.filter(r => this.filter === 'all' || String(r.circuit) === this.filter); }\n  },\n  methods: {\n    label(value) { return {UNKNOWN:'INCONNU', FAULT:'PANNE · déconnexion', INTERMITTENT:'PANNE · intermittence', RECOVERED:'RÉSOLUTION REÇUE'}[value]; },\n    time(value) { return value ? value.replace('T', ' ').replace('Z', ' UTC') : '—'; }\n  }\n};\n</script>\n<style>\n.sh { --red:#ad1825; --green:#116440; --ink:#172b42; font:18px/1.5 system-ui,sans-serif; color:var(--ink); width:100%; min-width:0; box-sizing:border-box; padding:clamp(12px,1.3vw,32px); margin:0; }\n.nrdb-ui-template { min-width:0; }\n.sh *, .sh *::before, .sh *::after { box-sizing:border-box; }\n.sh header, .sh .history-title { display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; }\n.sh header>div { min-width:0; }\n.sh h1 { font-size:clamp(30px,2.1vw,48px); line-height:1.15; letter-spacing:-1px; margin:8px 0; }\n.sh .eyebrow { font-size:15px; font-weight:750; letter-spacing:2px; color:#246c61; }\n.sh header p { margin:8px 0; }\n.sh .pill { border-radius:30px; background:#e4f1ee; padding:12px 22px; color:#17584e; font-size:18px; font-weight:650; }\n.sh .connections { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; background:#eaf0f5; padding:22px 26px; border-radius:14px; margin:24px 0 10px; }\n.sh .connections strong, .sh .connections small { display:block; }\n.sh .connections small { margin-bottom:5px; font-size:16px; }\n.sh .connections strong { font-size:22px; }\n.sh .good { color:var(--green); } .sh .bad { color:var(--red); }\n.sh .notice, .sh .history>p { font-size:16px; color:#4d6074; line-height:1.5; }\n.sh .summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; margin:24px 0 8px; }\n.sh .summary-item { display:flex; align-items:center; gap:20px; border:1px solid; border-radius:14px; padding:18px 24px; }\n.sh .summary-fault { background:#fff0f1; border-color:#efb6bc; color:var(--red); }\n.sh .summary-recovered { background:#eaf7ef; border-color:#b2d9c2; color:var(--green); }\n.sh .summary-unknown { background:#edf1f6; border-color:#c4ceda; color:#465b72; }\n.sh .summary-number { font-size:48px; line-height:1; font-weight:800; font-variant-numeric:tabular-nums; }\n.sh .summary-item strong { display:block; font-size:21px; }\n.sh .summary-item small { display:block; font-size:15px; }\n.sh .summary-caption { margin:8px 0 22px; }\n.sh .circuits { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; margin:22px 0 28px; }\n.sh .circuit { min-width:0; border:1px solid #cbd5e1; border-top:7px solid #7c8da3; border-radius:14px; padding:24px; background:#fff; overflow-wrap:anywhere; }\n.sh .circuit h2 { font-size:clamp(24px,1.55vw,34px); line-height:1.25; margin:10px 0 22px; }\n.sh .circuit small { font-size:15px; }\n.sh .diagnosis { display:flex; align-items:center; gap:10px; font-size:18px; line-height:1.35; padding:12px; border-radius:9px; background:#edf1f6; margin-bottom:18px; }\n.sh .status-symbol { display:inline-flex; align-items:center; justify-content:center; flex:0 0 30px; height:30px; border-radius:50%; background:#52647a; color:white; font-size:22px; font-weight:800; }\n.sh .fault, .sh .intermittent { border-color:#df9ca4; border-top-color:var(--red); background:#fff8f8; }\n.sh .fault .diagnosis, .sh .intermittent .diagnosis { color:var(--red); background:#fbe2e5; }\n.sh .fault .status-symbol, .sh .intermittent .status-symbol { background:var(--red); }\n.sh .recovered { border-top-color:var(--green); }\n.sh .recovered .diagnosis { color:var(--green); background:#e4f3e9; }\n.sh .recovered .status-symbol { background:var(--green); }\n.sh .measurement { font-size:30px; font-weight:700; margin:14px 0 8px; }\n.sh .measurement span { font-size:16px; font-weight:500; }\n.sh .health-note { font-size:15px; color:#4d6074; margin:12px 0 0; }\n.sh .circuit .notice { background:#fff5df; border-left:3px solid #b48224; padding:9px 12px; font-size:15px; margin-top:12px; }\n.sh .history { min-width:0; max-width:100%; background:white; border:1px solid #cbd5e1; border-radius:14px; padding:24px; }\n.sh .history h2 { font-size:28px; margin:0 0 8px; }\n.sh .history select { border:1px solid #8e9eb1; border-radius:8px; padding:9px 12px; margin-left:10px; font-size:17px; background:white; color:var(--ink); }\n.sh .table-scroll { max-height:540px; max-width:100%; overflow:auto; margin-top:14px; }\n.sh table { width:100%; border-collapse:collapse; font-size:17px; white-space:nowrap; }\n.sh th, .sh td { text-align:left; padding:14px 16px; border-bottom:1px solid #e1e6ec; }\n.sh th { background:#eaf0f5; position:sticky; top:0; z-index:1; }\n.sh tbody tr:nth-child(even) { background:#f7f9fb; }\n.sh .event-badge { display:inline-block; border-radius:6px; padding:4px 10px; font-size:16px; font-weight:650; }\n.sh .event-fault { background:#fbe2e5; color:var(--red); }\n.sh .event-recovered { background:#e4f3e9; color:var(--green); }\n.sh .error { padding:16px; border-left:5px solid var(--red); background:#ffeded; color:#8d2020; margin:16px 0; }\n@media(min-width:2200px) { .sh { font-size:20px; } .sh .circuit { padding:30px; } .sh .diagnosis { font-size:22px; } .sh table { font-size:19px; } }\n@media(max-width:1200px) { .sh .circuits, .sh .connections { grid-template-columns:repeat(2,minmax(0,1fr)); } .sh .summary-item { padding:16px; gap:12px; } .sh .summary-item strong { font-size:18px; } }\n@media(max-width:700px) { .sh { font-size:16px; padding:10px; } .sh .circuits, .sh .connections, .sh .summary { grid-template-columns:1fr; } .sh .circuit, .sh .history, .sh .connections { padding:18px; } .sh .history h2 { font-size:24px; } .sh .pill { font-size:16px; } .sh table { font-size:15px; } }\n</style>\n",
+    "storeOutMessages": true,
+    "passthru": false,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "wires": []
+  }
+]
