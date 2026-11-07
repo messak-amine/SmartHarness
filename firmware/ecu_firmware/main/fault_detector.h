@@ -19,7 +19,7 @@ typedef enum {
     SH_EVENT_OPEN_DETECTED,
     SH_EVENT_INTERMITTENT_DETECTED,
     SH_EVENT_RECOVERED
-} sh_fault_event_t;
+} sh_fault_transition_t;
 
 typedef struct {
     sh_fault_state_t state;
@@ -30,7 +30,7 @@ typedef struct {
 } sh_fault_detector_t;
 
 void sh_fault_detector_init(sh_fault_detector_t *d);
-sh_fault_event_t sh_fault_detector_update(sh_fault_detector_t *d,
+sh_fault_transition_t sh_fault_detector_update(sh_fault_detector_t *d,
                                            bool command_on,
                                            uint16_t voltage_mv,
                                            uint32_t timestamp_ms);

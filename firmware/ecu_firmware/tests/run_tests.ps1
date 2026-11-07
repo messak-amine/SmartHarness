@@ -19,4 +19,20 @@ foreach ($test in $tests) {
     & $exe
     if ($LASTEXITCODE -ne 0) { throw "Test failed: $name" }
 }
-Write-Host "All native tests passed."
+
+
+# Cross-component CAN v1 compatibility (application -> shared codec).
+$canInc = Join-Path $root '../components/smartharness_can/include'
+$canSrc = Join-Path $root '../components/smartharness_can/smartharness_can.c'
+$integratedExe = Join-Path $out 'test_ecu_can_adapter.exe'
+& gcc -std=c11 -Wall -Wextra -Werror -I $src -I $canInc `
+    (Join-Path $PSScriptRoot 'test_ecu_can_adapter.c') `
+    (Join-Path $src 'sensor_sim.c') `
+    (Join-Path $src 'fault_detector.c') `
+    (Join-Path $src 'ecu_events.c') `
+    (Join-Path $src 'ecu_can_adapter.c') `
+    $canSrc -o $integratedExe
+if ($LASTEXITCODE -ne 0) { throw 'Compile failed: ECU/CAN integration' }
+& $integratedExe
+if ($LASTEXITCODE -ne 0) { throw 'Test failed: ECU/CAN integration' }
+Write-Host 'All ECU and ECU/CAN integration tests passed.'
