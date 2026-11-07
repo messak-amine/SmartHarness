@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
@@ -9,6 +10,7 @@
 #include "sensor_sim.h"
 #include "fault_detector.h"
 #include "ecu_events.h"
+#include "ecu_can_adapter.h"
 
 #define SH_POLL_INTERVAL_MS 100U
 #define SH_DEMO_CYCLE_MS    12000U
@@ -36,9 +38,7 @@ static sh_circuit_t circuits[2] = {
 };
 #endif
 
-/* Software-only fault-injection scenario on circuit 1 (A) or 3 (B):
-   transient -> confirmed open -> recovery -> repeated open (intermittent)
-   -> recovery. This is NOT hardware ADC acquisition. */
+/* Deterministic SOFTWARE fault injection, NOT ADC/GPIO hardware acquisition. */
 static void apply_mock_inputs(uint32_t elapsed_ms)
 {
     const uint32_t phase = elapsed_ms % SH_DEMO_CYCLE_MS;
@@ -51,38 +51,58 @@ static void apply_mock_inputs(uint32_t elapsed_ms)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "SmartHarness ECU %c - software mock started", ECU_ROLE);
+    ESP_LOGI(TAG, "ECU %c - simulated inputs, CAN v1 software encoding; physical TX disabled", ECU_ROLE);
+
     for (unsigned i = 0; i < 2U; ++i) {
         sh_fault_detector_init(&circuits[i].detector);
     }
 
-    uint32_t elapsed_ms = 0;
+    const uint32_t start_ms = (uint32_t)(esp_timer_get_time() / 1000);
+    uint32_t last_report_s = UINT32_MAX;
     uint16_t next_seq = 0;
+
     while (true) {
+        const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        const uint32_t elapsed_ms = now_ms - start_ms;
         apply_mock_inputs(elapsed_ms);
+
         for (unsigned i = 0; i < 2U; ++i) {
             sh_circuit_t *c = &circuits[i];
             const uint16_t voltage = sensor_sim_read_mv(c->sensor);
-            const sh_fault_event_t event = sh_fault_detector_update(
-                &c->detector, c->sensor.command_on, voltage, elapsed_ms);
-            sh_ecu_event_t message;
-            if (sh_ecu_event_build(ECU_ROLE, c->id, event, voltage,
-                                    c->sensor.command_on, &next_seq, &message)) {
-                ESP_LOGW(TAG,
-                         "EVENT ecu=%c circuit=%u fault_code=%u active=%u voltage_mv=%u seq=%u",
-                         message.ecu_role, (unsigned)message.circuit_id,
-                         (unsigned)message.fault_code, (unsigned)message.fault_active,
-                         (unsigned)message.voltage_mv, (unsigned)message.sequence);
-                /* Membre 2 will forward this object to TWAI.
-                   Gateway must explicitly support fault_code=2 before TX. */
-            }
-            if (elapsed_ms % 1000U == 0U) {
-                ESP_LOGI(TAG, "circuit=%u %s voltage=%u mV state=%d",
-                         (unsigned)c->id, c->name, (unsigned)voltage,
-                         (int)c->detector.state);
+            const sh_fault_transition_t transition = sh_fault_detector_update(
+                &c->detector, c->sensor.command_on, voltage, now_ms);
+
+            sh_ecu_event_t event;
+            if (sh_ecu_event_build(ECU_ROLE, c->id, transition, voltage,
+                                   c->sensor.command_on, &next_seq, &event)) {
+                sh_can_frame_t frame;
+                if (sh_ecu_can_encode(&event, &frame)) {
+                    ESP_LOGW(TAG,
+                        "CAN_READY id=0x%03lX circuit=%u local_code=%u wire_code=%u "
+                        "voltage_mv=%u seq=%u (NOT TRANSMITTED)",
+                        (unsigned long)frame.identifier,
+                        (unsigned)event.circuit_id,
+                        (unsigned)event.fault_code,
+                        (unsigned)frame.data[1],
+                        (unsigned)event.voltage_mv,
+                        (unsigned)event.sequence);
+                } else {
+                    ESP_LOGE(TAG, "CAN v1 encode failed for circuit=%u", (unsigned)c->id);
+                }
             }
         }
+
+        const uint32_t report_s = elapsed_ms / 1000U;
+        if (report_s != last_report_s) {
+            last_report_s = report_s;
+            for (unsigned i = 0; i < 2U; ++i) {
+                const sh_circuit_t *c = &circuits[i];
+                ESP_LOGI(TAG, "circuit=%u %s state=%d voltage=%u mV",
+                         (unsigned)c->id, c->name, (int)c->detector.state,
+                         (unsigned)sensor_sim_read_mv(c->sensor));
+            }
+        }
+
         vTaskDelay(pdMS_TO_TICKS(SH_POLL_INTERVAL_MS));
-        elapsed_ms += SH_POLL_INTERVAL_MS;
     }
 }

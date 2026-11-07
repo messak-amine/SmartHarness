@@ -61,3 +61,11 @@ jobs:
           done
 
           echo "ALL NATIVE CAN TESTS PASSED"
+
+  ecu-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test ECU firmware and CAN v1 compatibility
+        shell: bash
+        run: bash firmware/ecu_firmware/tests/run_tests.sh

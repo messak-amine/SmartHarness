@@ -7,7 +7,7 @@ void sh_fault_detector_init(sh_fault_detector_t *d)
     d->state = SH_FAULT_NORMAL;
 }
 
-sh_fault_event_t sh_fault_detector_update(sh_fault_detector_t *d,
+sh_fault_transition_t sh_fault_detector_update(sh_fault_detector_t *d,
                                            bool command_on,
                                            uint16_t voltage_mv,
                                            uint32_t timestamp_ms)
