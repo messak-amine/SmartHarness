@@ -1,40 +1,12 @@
 """SmartHarness — Integration & Reliability Tests (Mission 5)."""
 
 import json
-import sqlite3"""
-SmartHarness 2.0 — Tests d'Intégration Logicielle Bout-en-Bout, Transport & Fiabilité (Mission 5)
-Branche : feat/integration-tests
-Emplacement dans le dépôt : tests/test_integration_chain.py
-
-Exécution directe :
-    python -m unittest discover -s tests -v
-    pytest -v
-
-Répond aux 5 points de la revue PR #2 par rapport à `develop` :
-1. Chaîne d'intégration logicielle réelle :
-   `simulator.ecu.ECU` -> `simulator.can_protocol.encode_fault`
-   -> Bus CAN virtuel `python-can` (`can.Bus(..., interface="virtual")`)
-   -> `gateway.decoder.decode_fault` + validateur strict CAN v1
-   -> Courtier MQTT v3.1.1 TCP Loopback (`127.0.0.1` via `socket`) ou mock isolé explicite
-   -> Déduplication & validation côté abonné -> SQLite (`fault_events`, `measurements`, `diagnostics`).
-2. Alignement strict avec le contrat CAN v1 (`contracts/can_protocol.md`) et l'encodeur C de M2
-   (`firmware/components/smartharness_can/smartharness_can.c`) :
-   - Seuls `fault_code` `0` (résolu) et `1` (coupure) sont autorisés en v1.
-   - `fault_code = 2` (intermittent) est rejeté par défaut en mode strict v1 et n'est accepté
-     que lorsque l'extension future est explicitement activée (`allow_future_intermittent_v2=True`).
-3. Politiques de mémoire bornée et de fiabilité :
-   - Tampon hors-ligne Gateway borné par `max_buffer_size` (éviction FIFO `DROP_OLDEST`).
-   - Cache de déduplication QoS 1 borné par `max_dedup_keys` (`OrderedDict`) avec détection
-     de redémarrage d'ECU / réinitialisation de séquence (`seq == 1` après `last_seq > 1`).
-4. Tests négatifs complets sur les trames CAN et les charges utiles JSON MQTT.
-"""
 
 from collections import OrderedDict, deque
 from dataclasses import dataclass
-import json
+import sqlite3
 import queue
 import socket
-import sqlite3
 import struct
 import threading
 import time
