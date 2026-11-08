@@ -25,6 +25,7 @@ Répond aux 5 points de la revue PR #2 par rapport à `develop` :
      de redémarrage d'ECU / réinitialisation de séquence (`seq == 1` après `last_seq > 1`).
 4. Tests négatifs complets sur les trames CAN et les charges utiles JSON MQTT.
 """
+import json
 from collections import OrderedDict, deque
 from dataclasses import dataclass
 import sqlite3
