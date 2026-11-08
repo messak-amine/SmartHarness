@@ -1,0 +1,16 @@
+
+menu "SmartHarness ECU Configuration"
+
+    choice SH_ECU_ROLE
+        prompt "Select ECU role"
+        default SH_ECU_A
+
+        config SH_ECU_A
+            bool "ECU A - Headlights and Indicators"
+
+        config SH_ECU_B
+            bool "ECU B - Brake Lights and Ventilation"
+
+    endchoice
+
+endmenu
