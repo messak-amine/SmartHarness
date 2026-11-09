@@ -23,6 +23,7 @@ The ECU role is selected using ESP-IDF Kconfig.
 - Intermittent fault classification
 - Independent fault monitoring per circuit
 - Diagnostic event generation with sequence tracking
+- CAN v1 frame encoding and round-trip compatibility using the shared codec
 - Native C unit tests
 
 ## Firmware Structure
@@ -34,12 +35,14 @@ firmware/ecu_firmware/
 │   ├── sensor_sim.c / .h
 │   ├── fault_detector.c / .h
 │   ├── ecu_events.c / .h
+│   ├── ecu_can_adapter.c / .h
 │   ├── Kconfig.projbuild
 │   └── CMakeLists.txt
 ├── tests/
 │   ├── test_sensor_sim.c
 │   ├── test_fault_detector.c
 │   ├── test_ecu_events.c
+│   ├── test_ecu_can_adapter.c
 │   ├── run_tests.ps1
 │   └── run_tests.sh
 └── README.md
@@ -71,11 +74,20 @@ The ECU firmware prepares diagnostic events for the shared CAN communication lay
 Fault codes:
 - `0`: Recovery
 - `1`: Open circuit
-- `2`: Intermittent fault (integration pending)
+- `2`: Intermittent fault (local classification only; sent as code `1` with CAN v1)
 
 The diagnostic interface follows the project CAN contract defined in `contracts/can_protocol.md`.
 
-Physical CAN transmission is handled separately by the shared TWAI communication module.
+The application generates a diagnostic event, converts it with `ecu_can_adapter.c`,
+then encodes it with the existing `smartharness_can` component. It logs the
+resulting CAN frame, but does **not transmit it on a physical bus**.
+
+**Compatibility decision (temporary):** CAN v1 code `2` is reserved and the
+shared encoder rejects it. Local intermittent code `2` is **mapped to wire code
+`1`** (disconnection), while the local code stays `2` in logs. The receiver
+cannot distinguish these two cases yet. Do **not** add code `2` to physical CAN
+until Membre 2/3 approve and update the codec/gateway/contract together.
+TWAI driver startup, GPIO pin allocation and bus TX require future hardware integration.
 
 ## Build
 
@@ -109,7 +121,7 @@ bash firmware/ecu_firmware/tests/run_tests.sh
 ```
 
 Latest local validation:
-- Native C tests: 52 passed
+- Native C tests: 52 previously passed locally; additional cross-component tests run with the updated runner
 - Project Python regression tests: 69 passed
 
 ## Integration Status
@@ -119,15 +131,28 @@ Implemented:
 - Simulated sensor acquisition
 - Fault detection and recovery
 - Intermittent fault classification
-- Diagnostic event preparation
+- Diagnostic event preparation and CAN v1 encoding (software only)
 - Native software testing
 
 Pending:
 - Hardware ADC/GPIO integration
-- TWAI/CAN transmission integration
+- Physical TWAI/CAN transmission integration
 - Gateway interoperability validation
 - Physical ESP32 testing
 
 ## Project
 
 Part of the SmartHarness distributed automotive wiring harness monitoring system.
+
+## Software integration validation
+
+From the repository root, run `bash firmware/ecu_firmware/tests/run_tests.sh`
+(or the PowerShell variant above). The script now also compiles ECU application
+sources together with the shared CAN v1 codec. GitHub Actions runs the same
+suite in the `ecu-native` job. Run ESP-IDF builds **for both Kconfig roles** on
+an ESP-IDF v5.5.6 installation; native GCC is not a substitute for those builds.
+
+The demo's elapsed time is taken from `esp_timer_get_time()` instead of
+incrementing a counter for each loop iteration. Sensor inputs are still mock
+values, with an intentionally simulated disconnected circuit. Thresholds must
+be calibrated with actual hardware later.

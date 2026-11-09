@@ -1,7 +1,7 @@
 #include "ecu_events.h"
 
 bool sh_ecu_event_build(char ecu_role, uint8_t circuit_id,
-                         sh_fault_event_t type, uint16_t voltage_mv,
+                         sh_fault_transition_t type, uint16_t voltage_mv,
                          bool command_on, uint16_t *next_sequence,
                          sh_ecu_event_t *out)
 {
