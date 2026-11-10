@@ -59,6 +59,7 @@ class GatewayMQTTTests(unittest.TestCase):
 
 
 BROKER = os.getenv("MOSQUITTO_BIN") or shutil.which("mosquitto")
+BROKER_CONFIG = os.getenv("MOSQUITTO_TEST_CONFIG")
 if not BROKER and Path("C:/Program Files/Mosquitto/mosquitto.exe").exists():
     BROKER = "C:/Program Files/Mosquitto/mosquitto.exe"
 
@@ -67,23 +68,32 @@ if not BROKER and Path("C:/Program Files/Mosquitto/mosquitto.exe").exists():
 class BrokerIntegrationTests(unittest.TestCase):
     def start_broker(self):
         self.process = subprocess.Popen([BROKER, "-c", str(self.config)],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
             if self.process.poll() is not None:
-                self.fail("Mosquitto failed to start")
+                output, _ = self.process.communicate()
+                self.fail(
+                    f"Mosquitto failed to start (exit code {self.process.returncode}):\n{output}"
+                )
             try:
                 with socket.create_connection(("127.0.0.1", self.port), 0.1):
                     return
             except OSError:
                 time.sleep(0.05)
-        self.fail("Broker startup timeout")
+        self.process.terminate()
+        output, _ = self.process.communicate(timeout=5)
+        self.fail(f"Mosquitto startup timeout; broker output:\n{output}")
 
     def stop_broker(self):
         if self.process.poll() is None:
             self.process.terminate()
-            self.process.wait(timeout=5)
+        try:
+            self.process.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+            self.process.communicate(timeout=5)
 
     def setUp(self):
         with socket.socket() as sock:
@@ -91,7 +101,7 @@ class BrokerIntegrationTests(unittest.TestCase):
             self.port = sock.getsockname()[1]
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.config = Path(self.temp.name) / "mosquitto.conf"
+        self.config = Path(BROKER_CONFIG) if BROKER_CONFIG else Path(self.temp.name) / "mosquitto.conf"
         self.config.write_text(f"listener {self.port} 127.0.0.1\nallow_anonymous true\npersistence false\n")
         self.start_broker()
         self.addCleanup(self.stop_broker)
