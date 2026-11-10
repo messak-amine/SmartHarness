@@ -41,6 +41,7 @@ venv/
 
 # Local databases
 *.db
+/broker/smartharness-mqtt.db.new
 *.sqlite
 *.sqlite3
 *.sqlite-wal

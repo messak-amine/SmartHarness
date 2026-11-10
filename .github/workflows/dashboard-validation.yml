@@ -2,7 +2,17 @@ name: Mission 4 Dashboard and SQLite
 on:
   pull_request:
     branches: [dev, develop]
-    paths: ['dashboard/**', 'start-local.ps1', 'start-online.ps1', '.github/workflows/dashboard-validation.yml']
+    paths:
+      - 'dashboard/**'
+      - 'gateway/**'
+      - 'simulator/**'
+      - 'broker/**'
+      - 'requirements.txt'
+      - 'tests/__init__.py'
+      - 'tests/audit_mqtt_outage.py'
+      - 'start-local.ps1'
+      - 'start-online.ps1'
+      - '.github/workflows/dashboard-validation.yml'
   workflow_dispatch:
 jobs:
   dashboard:
@@ -18,6 +28,11 @@ jobs:
           cache: npm
           cache-dependency-path: dashboard/package-lock.json
       - run: sudo apt-get update && sudo apt-get install -y mosquitto
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+        working-directory: .
       - run: npm ci
       - run: npm test
       - name: Verify generated flows
@@ -31,3 +46,57 @@ jobs:
           trap 'sudo rm -f -- "$config"' EXIT
           sudo chown "$(id -u):$(id -g)" "$config"
           SH_TEST_MOSQUITTO_CONFIG="$config" npm run test:integration
+      - name: Audit MQTT outage recovery on Ubuntu
+        working-directory: .
+        timeout-minutes: 10
+        env:
+          MOSQUITTO_BIN: /usr/sbin/mosquitto
+          PYTHONUNBUFFERED: '1'
+        run: |
+          set -euo pipefail
+          export TMPDIR
+          TMPDIR=$(mktemp -d /tmp/smartharness-ci-XXXXXXXX)
+          echo "Audit evidence: $TMPDIR"
+          dpkg-query -W mosquitto
+          # Inspect the running kernel, not just profiles installed on disk.
+          if [[ -e /sys/module/apparmor/parameters/enabled ]] && [[ $(sudo cat /sys/module/apparmor/parameters/enabled) == Y ]]; then
+            profiles=$(sudo cat /sys/kernel/security/apparmor/profiles)
+            active=$(grep -E '^(mosquitto|/usr/sbin/mosquitto) ' <<< "$profiles" || true)
+            echo "Mosquitto AppArmor profile: ${active:-not loaded}"
+            if [[ $active == *'(enforce)' ]]; then
+              profile=''
+              for candidate in /etc/apparmor.d/{mosquitto,usr.sbin.mosquitto}; do
+                if [[ -f $candidate ]] && [[ $(sudo apparmor_parser -N "$candidate") == "${active% (enforce)}" ]]; then
+                  profile=$candidate
+                  break
+                fi
+              done
+              : "${profile:?Cannot identify the source of the enforced Mosquitto profile}"
+              # Keep the packaged profile and its local includes. Add rules only
+              # to the loaded policy, only for files owned by this job's user.
+              awk -v dir="$TMPDIR/smartharness-outage-*" -v site="<local/${profile##*/}>" '
+                { print }
+                index($0, site) && /include/ {
+                  print "  owner \"" dir "/broker.conf\" r,"
+                  print "  owner \"" dir "/broker/smartharness-mqtt.db{,.new}\" rwk,"
+                  inserted++
+                }
+                END { if (inserted != 1) exit 1 }
+              ' "$profile" > "$TMPDIR/audit.profile"
+              trap 'sudo apparmor_parser -K -r "$profile" || exit 1' EXIT
+              sudo apparmor_parser -K -r -I /etc/apparmor.d "$TMPDIR/audit.profile"
+            elif [[ -n $active && $active != *'(complain)' ]]; then
+              echo "Unexpected Mosquitto confinement: $active" >&2; exit 1
+            fi
+          else
+            echo "AppArmor is not enabled on this runner"
+          fi
+
+          status=0
+          python -m tests.audit_mqtt_outage --instances || status=1
+          python -m tests.audit_mqtt_outage --crash saved || status=1
+          if (( status )); then
+            find "$TMPDIR" -type f \( -name broker.log -o -name node.log -o -name trace.jsonl \) \
+              -exec tail -v -n 40 {} +
+            exit 1
+          fi

@@ -9,7 +9,7 @@ function node(id, type, name, props = {}, wires = []) {
 }
 function fn(id, name, func, wires, outputs = 1) { node(id, 'function', name, { func, outputs, noerr: 0, initialize: '', finalize: '', libs: [] }, wires); }
 const ctx = "const s=global.get('shState'); const sh=global.get('sh');\n";
-node('broker', 'mqtt-broker', 'Mosquitto local', { broker: '${MQTT_HOST}', port: '${MQTT_PORT}', clientid: '', autoConnect: true, usetls: false, protocolVersion: '4', keepalive: '15', cleansession: true, autoUnsubscribe: true });
+node('broker', 'mqtt-broker', 'Mosquitto local', { broker: '${MQTT_HOST}', port: '${MQTT_PORT}', clientid: '${SH_DASHBOARD_SESSION_ID}', autoConnect: true, usetls: false, protocolVersion: '4', keepalive: '15', cleansession: false, autoUnsubscribe: true });
 node('db', 'sqlitedb', 'Historique persistant', { db: '${SH_DB_PATH}', mode: 'RWC' });
 for (const ecu of ['a', 'b']) node(`mqtt-${ecu}`, 'mqtt in', `Pannes ECU ${ecu.toUpperCase()}`, { topic: `smartharness/ecu/${ecu}/faults`, qos: '1', datatype: 'utf8', broker: 'broker', nl: false, rap: true, rh: 0, inputs: 0 }, [['validate']]);
 node('mqtt-gateway', 'mqtt in', 'Statut Gateway', { topic: 'smartharness/gateway/status', qos: '1', datatype: 'utf8', broker: 'broker', nl: false, rap: true, rh: 0, inputs: 0 }, [['gateway-status']]);

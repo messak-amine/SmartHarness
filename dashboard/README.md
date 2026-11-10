@@ -46,6 +46,12 @@ Ouvrir PowerShell dans `dashboard/`. **Si un broker local fonctionne déjà sur 
 
 Si Mosquitto est installé ailleurs, remplacer uniquement le chemin de l’exécutable par celui de votre installation. Si la commande `mosquitto` est déjà dans le PATH, `mosquitto -c .\mosquitto.conf -v` convient aussi. Garder ce terminal ouvert.
 
+Le broker local sauvegarde ses abonnements dans `broker/smartharness-mqtt.db` à la racine du dépôt. Utiliser le répertoire de lancement indiqué et laisser ce dossier accessible en écriture. Chaque instance Node-RED a son propre dossier `SH_RUNTIME_DIR` (par défaut `.runtime`). Au premier lancement, elle y crée `mqtt-instance-id`. Garder ce dossier et le même port HTTP permet de reprendre le même abonnement après redémarrage. Pour une autre instance, créer un dossier de runtime vierge et une base SQLite distincte. Copier le dossier de runtime et réutiliser le même port HTTP sur deux machines dupliquerait leur identité MQTT.
+
+Après un premier abonnement, un arrêt normal de Mosquitto conserve la session. En cas d’arrêt brutal, la reprise dépend de la dernière sauvegarde (intervalle de 15 secondes). Un PUBACK du broker confirme la réception MQTT. Seule une insertion réussie confirme l’archivage dans SQLite. Le test a retrouvé les séquences `65535, 0, 1, 2, 2` dans les deux ordres de reconnexion, après arrêt normal ou arrêt brutal après sauvegarde. Avant la première sauvegarde, un arrêt brutal suivi du retour du Gateway en premier a donné `65535, 0, 2, 2`. La livraison de bout en bout « exactement une fois » n’est pas garantie. Les répétitions reçues restent dans l’historique.
+
+Les lanceurs réutilisent un broker déjà en écoute. Le service Windows Mosquitto 2.1.2 lit `%MOSQUITTO_DIR%\mosquitto.conf` dans son environnement de service. Vérifier sa configuration avec son administrateur avant de compter sur la reprise après redémarrage. Les fichiers de ce dépôt configurent uniquement le broker lancé avec leur option `-c`.
+
 Cette configuration écoute seulement `127.0.0.1`. Elle ne modifie pas le service Mosquitto installé. Si le port est occupé, identifier le broker existant avant toute action ; ne pas arrêter un service inconnu. Pour utiliser un autre port de laboratoire, adapter le port dans une copie de la configuration et définir `$env:MQTT_PORT` avec la même valeur dans les terminaux Node-RED et démo avant leur lancement.
 
 ## Démarrage normal de Node-RED — terminal 2
