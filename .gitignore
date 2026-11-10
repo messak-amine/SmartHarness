@@ -9,6 +9,28 @@ venv/
 
 # Local environment configuration
 .env
+.env.*
+!.env.example
+
+# Local SmartHarness tools and private connector configuration
+/.tools/
+/node_modules/
+/.runtime/
+/.test-runtime/
+/.secrets/
+/secrets/
+/credentials/
+/cloudflared.exe
+/cloudflared.token
+/tunnel-token.txt
+.cloudflared/
+/docs/cloudflared.yml
+/docs/cloudflared.yaml
+/cloudflared.yml
+/cloudflared.yaml
+/cert.pem
+# cloudflared names tunnel credentials after the tunnel UUID.
+????????-????-????-????-????????????.json
 
 # Testing artifacts
 .pytest_cache/
@@ -18,6 +40,15 @@ venv/
 *.db
 *.sqlite
 *.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+*.db-wal
+*.db-shm
+*.db-journal
 
 # Temporary files
 *.log

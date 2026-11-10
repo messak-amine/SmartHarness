@@ -2,38 +2,61 @@
 
 Node-RED reçoit les diagnostics MQTT, valide leur contenu, enregistre chaque réception dans SQLite et affiche les quatre circuits. La détection appartient aux ECU ; ce module ne recalcule pas une panne à partir de la tension.
 
-## Démarrage Windows
+## Installation Windows — première utilisation
 
 Prérequis : Node.js **24.x** et Mosquitto. Versions fixées dans `package.json` et `package-lock.json` : Node-RED 5.0.9, FlowFuse Dashboard 1.34.1, node-red-node-sqlite 2.0.1, MQTT.js 5.16.1.
 
-Ouvrir PowerShell dans `dashboard/`. Avec npm disponible :
+Installer Node.js 24 avec npm à partir de l’installateur officiel Windows, puis Mosquitto à partir de son installateur officiel. Fermer et rouvrir PowerShell après l’installation pour prendre en compte le PATH. Il n’est pas nécessaire d’installer Node-RED globalement : les dépendances sont installées dans le projet.
+
+**Toutes les commandes ci-dessous s’exécutent dans le dossier `dashboard/`, y compris dans chaque nouveau terminal.** Depuis la racine de votre copie du dépôt SmartHarness :
+
+```powershell
+Set-Location .\dashboard
+Get-Location
+Test-Path .\package.json
+```
+
+Le chemin affiché doit se terminer par `dashboard` et la dernière commande doit retourner `True`. Si vous êtes déjà dans ce dossier, ne refaites pas `Set-Location .\dashboard`.
+
+Vérifier les outils, puis installer les versions du fichier de verrouillage :
 
 ```powershell
 node --version
-npm --version
-npm ci
-npm start
+npm.cmd --version
+npm.cmd ci
 ```
 
-Sur le PC audité, npm n’était pas dans le PATH. Une copie locale est disponible dans `.tools/package`. Le wrapper trouve Node dans le PATH, ou utilise le runtime déjà présent sur ce PC. Il ne change pas le PATH permanent.
+La configuration Windows vérifiée utilise **Node.js 24.22.0 et npm 11.19.1**. `npm.cmd ci` a réussi avec le fichier de verrouillage du projet. Un accès Internet est nécessaire pour télécharger les dépendances, notamment le module natif SQLite. Attendre la fin de l’installation avant de lancer l’application. SQLite est embarquée dans Node-RED : aucun serveur SQLite séparé n’est à installer ni à démarrer.
+
+### Si PowerShell bloque `npm.ps1`
+
+Une erreur indiquant que « l’exécution de scripts est désactivée » peut apparaître avec la commande `npm` : PowerShell essaie alors de lancer `npm.ps1`. Utiliser **`npm.cmd`**, comme dans ce guide, sélectionne le lanceur Windows fourni avec npm et conserve la politique de sécurité du poste. Ne pas utiliser `Set-ExecutionPolicy`, `Bypass` ou désactiver une protection pour cette installation.
+
+Si `node` ou `npm.cmd` n’est pas reconnu, vérifier l’installation de Node.js avec npm, puis rouvrir le terminal. Les scripts `scripts/bootstrap-npm.ps1` et `scripts/npm.ps1` restent une solution facultative pour un environnement particulier ; ils ne sont pas nécessaires avec l’installation standard. Leur copie de npm dans `.tools/` n’est pas fournie par Git. Si une copie locale a déjà été préparée et que les scripts PowerShell sont bloqués, elle peut être invoquée avec `node .tools/package/bin/npm-cli.js ci` depuis `dashboard/`.
+
+Avec npm 12, le script d’installation natif `sqlite3@6.0.1` est autorisé explicitement dans `package.json`. Les autres scripts restent soumis à la politique normale de npm ; ne pas autoriser tous les scripts globalement pour résoudre un problème d’installation.
+
+## Démarrer Mosquitto — terminal 1
+
+Ouvrir PowerShell dans `dashboard/`. **Si un broker local fonctionne déjà sur le port 1883, le réutiliser sans lancer une deuxième instance.** Sinon, avec le dossier d’installation Windows habituel :
 
 ```powershell
-# Une seule fois sur un nouveau poste sans npm (téléchargement vérifié SHA-512) :
-.\scripts\bootstrap-npm.ps1
-# Depuis dashboard/ :
-.\scripts\npm.ps1 ci
-.\scripts\npm.ps1 start
+& "$env:ProgramFiles\Mosquitto\mosquitto.exe" -c .\mosquitto.conf -v
 ```
 
-Le script d’installation natif `sqlite3@6.0.1` est autorisé explicitement dans `package.json` pour npm 12. Les autres scripts restent soumis à sa politique normale. Aucun `--ignore-scripts=false` global ni désactivation de protection n’est nécessaire. Si PowerShell interdit les scripts, respecter la politique du poste et utiliser `node .tools/package/bin/npm-cli.js ...` avec Node.js accessible ; ne pas modifier la politique de sécurité.
+Si Mosquitto est installé ailleurs, remplacer uniquement le chemin de l’exécutable par celui de votre installation. Si la commande `mosquitto` est déjà dans le PATH, `mosquitto -c .\mosquitto.conf -v` convient aussi. Garder ce terminal ouvert.
 
-Dans un autre terminal, démarrer le Mosquitto existant **si aucun broker n’écoute déjà sur 1883** :
+Cette configuration écoute seulement `127.0.0.1`. Elle ne modifie pas le service Mosquitto installé. Si le port est occupé, identifier le broker existant avant toute action ; ne pas arrêter un service inconnu. Pour utiliser un autre port de laboratoire, adapter le port dans une copie de la configuration et définir `$env:MQTT_PORT` avec la même valeur dans les terminaux Node-RED et démo avant leur lancement.
+
+## Démarrage normal de Node-RED — terminal 2
+
+Dans un deuxième terminal PowerShell, se placer dans `dashboard/`, puis lancer :
 
 ```powershell
-& 'C:\Program Files\Mosquitto\mosquitto.exe' -c .\mosquitto.conf -v
+npm.cmd start
 ```
 
-Cette configuration écoute seulement `127.0.0.1`. Elle ne modifie pas le service Mosquitto installé. Un port occupé est une erreur à résoudre en choisissant un port de laboratoire libre, pas en arrêtant un service inconnu.
+Lors des utilisations suivantes, cette commande suffit une fois Mosquitto disponible : inutile de refaire `npm.cmd ci` à chaque démarrage. Garder le terminal ouvert et attendre le message de démarrage de Node-RED, puis ouvrir les adresses suivantes dans Chrome :
 
 - Dashboard : <http://127.0.0.1:1880/dashboard/monitoring>
 - Éditeur des flows : <http://127.0.0.1:1880/editor/>
@@ -41,18 +64,27 @@ Cette configuration écoute seulement `127.0.0.1`. Elle ne modifie pas le servic
 
 Node-RED est lié à `127.0.0.1`. Cette livraison est destinée au laboratoire local ; elle n’expose pas l’éditeur au réseau. Ctrl+C arrête les processus lancés dans ces terminaux.
 
-## Première démonstration
+## Démonstration MQTT — terminal 3
 
-Avec Node-RED et le broker démarrés :
+Avec Node-RED et le broker démarrés, ouvrir un troisième terminal PowerShell **dans `dashboard/`** :
 
 ```powershell
-.\scripts\npm.ps1 run demo
-# ou : npm run demo
+npm.cmd run demo
 ```
 
 Cette simulation publie quatre pannes puis quatre résolutions, avec le JSON du contrat. Elle simule aussi le statut Gateway : ne pas l’exécuter simultanément avec un véritable Gateway sur le même broker de démonstration. Les réceptions réelles du Gateway utilisent les mêmes flows.
 
 Au début, les quatre circuits sont **INCONNU**. L’absence d’événement ne prouve pas que le circuit est sain. Après la démonstration : huit nouvelles réceptions en base, quatre résolutions affichées. Le Gateway simulé passe hors ligne en fin de démonstration.
+
+Le retour du terminal 3 à l’invite de commande et le statut Gateway « Hors ligne » sont donc normaux après la démo. Mosquitto et Node-RED continuent dans leurs terminaux. Relancer `npm.cmd run demo` ajoute huit nouvelles réceptions à l’historique existant.
+
+## Sécurité de la démonstration locale
+
+L’audit npm signalé lors de la vérification Windows compte **41 vulnérabilités : 35 modérées et 6 élevées**. Ce constat n’est pas une preuve que chaque faille est exploitable dans cette démo, mais il nécessite un examen avant tout usage plus large. Depuis `dashboard/`, `npm.cmd audit` permet de consulter le rapport ; les résultats peuvent évoluer avec les avis de sécurité.
+
+Ne pas lancer aveuglément **`npm.cmd audit fix --force`** : cette commande peut imposer des versions majeures incompatibles et modifier les dépendances ainsi que le fichier de verrouillage. Préparer les corrections séparément, examiner les changements et relancer les tests avant de les intégrer.
+
+La configuration fournie réserve Node-RED et Mosquitto à `127.0.0.1`, avec MQTT anonyme local et sans TLS. Garder cette configuration pour le laboratoire : ne pas ouvrir les ports 1880/1883 à Internet ni remplacer les adresses d’écoute par `0.0.0.0` sans une configuration de sécurité adaptée. L’accès local réduit l’exposition réseau ; il ne corrige pas les vulnérabilités signalées.
 
 ## Contrats et affichage
 
@@ -99,10 +131,14 @@ Ne pas placer de mot de passe dans les flows. Les fichiers de credentials et les
 
 ## Tests
 
+Dans un terminal PowerShell placé dans `dashboard/`, après `npm.cmd ci` :
+
 ```powershell
-.\scripts\npm.ps1 test
-.\scripts\npm.ps1 run test:integration
+npm.cmd test
+npm.cmd run test:integration
 ```
+
+La validation Windows communiquée comprend **12 tests unitaires et 11 tests d’intégration réussis**. Vérifier les totaux `pass`, `fail` et `skip` de votre propre exécution : les vérifications optionnelles décrites ci-dessous nécessitent leurs prérequis.
 
 Les tests d’intégration démarrent leur propre Mosquitto sur un port libre et leur propre Node-RED. Ils n’utilisent ni le broker de démonstration ni la base de l’utilisateur. Ils ferment leurs processus en fin de test. Les bases, logs et éventuelles captures sont conservés dans `.test-runtime/`, ignoré par Git.
 
@@ -113,7 +149,7 @@ Pour tester également le Gateway existant, fournir un répertoire de sa version
 ```powershell
 $env:SH_GATEWAY_DIR = 'CHEMIN_ABSOLU_DU_GATEWAY'
 $env:SH_PYTHON = 'CHEMIN_ABSOLU_DU_PYTHON_AVEC_DEPENDANCES'
-.\scripts\npm.ps1 run test:integration
+npm.cmd run test:integration
 ```
 
 Le test lance **sans modification** `python -B -m simulator.mqtt_demo` et vérifie huit insertions. Ne pas lancer deux processus séparés pour relier un CAN virtuel Python.
@@ -122,13 +158,16 @@ La vérification navigateur est optionnelle : définir `SH_PLAYWRIGHT_MODULE` ve
 
 ## Modifier les flows
 
-Sources lisibles : `scripts/build-flows.js`, `ui/dashboard.html`, `lib/`. Après modification :
+Cette étape concerne le développement ; elle n’est pas nécessaire pour une installation ou un démarrage normal. Sources lisibles : `scripts/build-flows.js`, `ui/dashboard.html`, `lib/`. Après modification, depuis `dashboard/` :
 
 ```powershell
-.\scripts\npm.ps1 run build:flows
-.\scripts\npm.ps1 test
-.\scripts\npm.ps1 run test:integration
+npm.cmd run build:flows
+git diff -- flows.json
+npm.cmd test
+npm.cmd run test:integration
 ```
+
+Sans changement des sources, la génération a été vérifiée reproductible : `git diff -- flows.json` ne produit aucune différence.
 
 `flows.json` est l’export généré et versionné. Il doit être utilisé avec `settings.js` et les bibliothèques de ce dossier ; l’import isolé dans un Node-RED quelconque ne suffit pas. L’éditeur peut modifier les flows ; reporter ces modifications dans le générateur avant de le relancer, car il réécrit `flows.json`.
 
@@ -140,3 +179,29 @@ Sources lisibles : `scripts/build-flows.js`, `ui/dashboard.html`, `lib/`. Après
 - Ni déduplication certaine ni remise en ordre globale après redémarrage ECU : le contrat n’a pas d’identifiant de démarrage ni d’heure source.
 - Pas de test ESP32/CAN physique, de validation de charge prolongée, de sauvegarde automatique ou de purge automatique de la base.
 - Les résultats mesurés sont consignés dans `docs/dashboard-db.md` à la racine du dépôt.
+
+## Lancer SmartHarness sous Windows
+
+Pour le partage en ligne, créer une fois `dashboard/access.local.txt` contenant une seule ligne avec l’adresse Gmail exacte autorisée. Ce fichier personnel est ignoré par Git. Le deuxième groupe autorisé est volontairement **tout le domaine `edu.uiz.ac.ma`**. Le lanceur refuse le démarrage en ligne si l’adresse personnelle est absente ou invalide. Le démarrage local fonctionne sans ce fichier.
+
+Depuis la racine du dépôt, après installation des dépendances du Dashboard :
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-local.ps1
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-online.ps1
+```
+
+Choisir la première commande pour un usage local ou la seconde pour partager le Dashboard. La seconde vérifie aussi les services locaux. `RemoteSigned` s'applique au processus PowerShell lancé. Les stratégies de groupe Windows restent prioritaires.
+
+Le mode local réutilise Mosquitto (1883), Node-RED (1880) et le proxy en lecture seule (1881), ou les démarre si nécessaire. SQLite est ouvert par Node-RED. Le mode en ligne nécessite Internet et une version Windows de `cloudflared` qui propose `tunnel --allowed-mail`. Le tunnel cible exclusivement le proxy. Le lanceur vérifie la connexion du tunnel, la redirection vers la connexion Cloudflare, le WebSocket et les routes privées avant d'afficher le lien. Copier la ligne **Dashboard en ligne**. Un visiteur autorisé utilise son code de connexion Cloudflare.
+
+Un tunnel compatible déjà ouvert conserve son URL. Si le connecteur est déconnecté et que son nom DNS a expiré, le mode en ligne peut le renouveler. Le lien peut alors changer. Un tunnel vers 1881 lancé avec d'autres options doit être vérifié ou fermé dans son terminal avant de recommencer. Pour remplacer un proxy manuel lancé avec un chemin relatif, fermer son propre terminal puis relancer le script. Pour un échec de démarrage, consulter les journaux locaux dans `dashboard/.runtime/launcher/`.
+
+Pour fermer le partage puis les services démarrés par les lanceurs :
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-online.ps1 -Stop
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\start-local.ps1 -Stop
+```
+
+Un service emprunté reste sous le contrôle de son propriétaire. Pour un tunnel manuel, utiliser Ctrl+C dans le terminal de cloudflared. Pour un Node-RED ou Mosquitto manuel, utiliser Ctrl+C dans son terminal ; un service Mosquitto géré par Windows se pilote dans Services. L'arrêt du seul tunnel laisse le Dashboard local et la route Tailscale disponibles.

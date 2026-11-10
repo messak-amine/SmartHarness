@@ -1,8 +1,8 @@
 name: Mission 4 Dashboard and SQLite
 on:
   pull_request:
-    branches: [develop]
-    paths: ['dashboard/**', '.github/workflows/dashboard-validation.yml']
+    branches: [dev, develop]
+    paths: ['dashboard/**', 'start-local.ps1', 'start-online.ps1', '.github/workflows/dashboard-validation.yml']
   workflow_dispatch:
 jobs:
   dashboard:

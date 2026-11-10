@@ -17,7 +17,9 @@
     "@flowfuse/node-red-dashboard": "1.34.1",
     "mqtt": "5.16.1",
     "node-red": "5.0.9",
-    "node-red-node-sqlite": "2.0.1"
+    "node-red-node-sqlite": "2.0.1",
+    "socket.io": "4.8.4",
+    "socket.io-client": "4.8.3"
   },
   "allowScripts": {
     "sqlite3@6.0.1": true

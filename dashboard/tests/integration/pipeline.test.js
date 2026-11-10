@@ -111,28 +111,141 @@ test('Chaîne réelle Mosquitto → Node-RED → SQLite, reprise et erreurs', {t
       assert.equal(s.circuits[0].status,'RECOVERED');assert.equal(s.circuits[0].last.seq,199);
       assert.deepEqual(s.history.slice(0,100).map(row=>row.seq),Array.from({length:100},(_,i)=>199-i));
     });
-    await t.test('Navigateur : quatre circuits, historique, filtre et écran mobile', {skip:!process.env.SH_PLAYWRIGHT_MODULE}, async()=>{
+    await t.test('Navigateur : quatre vues, routage, données partagées et mobile', {skip:!process.env.SH_PLAYWRIGHT_MODULE}, async()=>{
       const {chromium}=require(process.env.SH_PLAYWRIGHT_MODULE);
       const browser=await chromium.launch({headless:true,...(process.env.SH_BROWSER_CHANNEL?{channel:process.env.SH_BROWSER_CHANNEL}:{})});
       try {
-        const page=await browser.newPage({viewport:{width:1440,height:1000}});
-        const errors=[];page.on('pageerror',e=>errors.push(e.message));
-        await page.goto(`http://127.0.0.1:${httpPort}/dashboard/monitoring`);
-        await page.locator('.sh .circuit').last().waitFor();
-        assert.equal(await page.locator('.sh .circuit').count(),4);
-        assert.match(await page.locator('.sh').innerText(),/Historique des diagnostics/);
-        await page.locator('.history select').selectOption('1');
-        await until(async()=>{
-          const values=await page.locator('tbody tr td:nth-child(3)').allTextContents();
-          return values.length>0&&values.every(value=>value==='A / 1');
-        },'filtre circuit');
-        await page.locator('.history select').selectOption('all');
-        await page.screenshot({path:path.join(dir,'dashboard-desktop.png'),fullPage:true});
-        await page.setViewportSize({width:390,height:844});
+        const page=await browser.newPage({viewport:{width:1920,height:1080}});
+        const errors=[];
+        let sockets=0;
+        page.on('pageerror',e=>errors.push(e.message));
+        page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+        page.on('websocket',()=>sockets++);
+        const base='http://127.0.0.1:'+httpPort+'/dashboard/monitoring';
+        const names={overview:'Vue d’ensemble',circuits:'Circuits',analytics:'Analyses',history:'Historique'};
+        async function checkView(view) {
+          await until(async()=>await page.locator('[data-view="'+view+'"]:visible').count()===1,'vue '+view);
+          assert.equal(await page.locator('[data-view]:visible').count(),1);
+          assert.equal(await page.locator('nav [aria-current="location"]').count(),1);
+          assert.equal(await page.locator('nav [aria-current="location"]').getAttribute('aria-label'),names[view]);
+        }
+        async function navigate(view) {
+          await page.getByRole('button',{name:names[view],exact:true}).click();
+          await checkView(view);
+          await until(()=>new URL(page.url()).searchParams.get('shView')===view,'URL '+view);
+          assert.ok(await page.evaluate(()=>window.scrollY<5));
+        }
+        await page.goto(base);
+        await checkView('overview');
+          assert.equal(await page.locator('.brand-copy small').innerText(),'AUTOMOTIVE DIAGNOSTIC SYSTEM');
+          assert.equal(await page.locator('h1').textContent(),'Automotive Diagnostic Command Center');
+          assert.doesNotMatch(await page.locator('.sh-v2').innerText(), /mission\s*0?4|\bM04\b|démonstration locale/i);
+        assert.equal(await page.locator('.circuit:visible').count(),0);
+        const before=await snapshot();
+        const initialSockets=sockets;
+        for(const view of ['circuits','analytics','history','overview'])await navigate(view);
+        await page.goBack();await checkView('history');
+        await page.goBack();await checkView('analytics');
+        await page.goForward();await checkView('history');
+        await navigate('overview');
+        await page.locator('.marker').first().click();await checkView('circuits');
+        await until(()=>new URL(page.url()).searchParams.get('shCircuit')==='1','sélection dans URL');
+        assert.equal(await page.locator('.circuit.chosen').count(),1);
+        await page.getByRole('button',{name:'Historique du circuit 1',exact:true}).click();await checkView('history');
+        assert.equal(await page.getByLabel('Filtrer par circuit',{exact:true}).inputValue(),'1');
+        assert.ok((await page.locator('tbody tr td:nth-child(3)').allTextContents()).every(t=>t==='A / 1'));
+        await page.getByLabel('Filtrer par ECU',{exact:true}).selectOption('B');
+        assert.match(await page.locator('tbody').innerText(),/Aucun événement/);
+        await page.getByRole('button',{name:'Réinitialiser',exact:true}).click();
+        assert.equal(await page.getByRole('button',{name:'Réinitialiser',exact:true}).isDisabled(),true);
+        await navigate('analytics');
+        for(const circuit of [1,2,3,4]) {
+          const bar=page.locator('.bar-row').nth(circuit-1);
+          assert.equal(Number(await bar.locator('strong').innerText()),before.history.filter(r=>r.circuit===circuit).length);
+          await bar.focus();await bar.press('Enter');await checkView('history');
+          assert.equal(await page.getByLabel('Filtrer par circuit',{exact:true}).inputValue(),String(circuit));
+          await navigate('analytics');
+        }
+        await page.getByRole('button',{name:'Consulter les réceptions : Déconnexions'}).click();await checkView('history');
+        assert.equal(await page.getByLabel('Filtrer par diagnostic').inputValue(),'1');
+        await page.getByRole('button',{name:'Réinitialiser',exact:true}).click();
+        // Receive real MQTT events while the circuit cards are hidden.
+        await navigate('analytics');
+        await publish(event(2,201));
+        await until(async()=> (await snapshot()).total===before.total+1,'écriture hors vue circuits');
+        await navigate('circuits');
+        await until(async()=> (await page.locator('.circuit').nth(1).getAttribute('class')).includes('fault'),'panne partagée');
+        await page.screenshot({path:path.join(dir,'dashboard-fault.png'),fullPage:true});
+        await navigate('history');
+        await publish(event(2,202,false));
+        await until(async()=> (await snapshot()).total===before.total+2,'résolution hors vue circuits');
+        await until(async()=>await page.locator('tbody tr').first().locator('td').nth(6).innerText()==='202','historique temps réel');
+        await navigate('circuits');
+        await until(async()=> (await page.locator('.circuit').nth(1).getAttribute('class')).includes('recovered'),'résolution partagée');
+        await until(async()=>await page.locator('.circuit').nth(1).locator('.reception-flash').count()===1,'signal réception');
+        const db=new DatabaseSync(dbPath,{readOnly:true});
+        assert.deepEqual(db.prepare('SELECT fault_code,seq FROM fault_events ORDER BY event_id DESC LIMIT 2').all().map(r=>[r.fault_code,r.seq]),[[0,202],[1,201]]);
+        db.close();
+        assert.equal((await snapshot()).started_at,before.started_at);
+        assert.equal((await snapshot()).total,before.total+2);
+        assert.equal(sockets,initialSockets,'navigation conserves the Dashboard socket');
+        await page.getByRole('button',{name:'Réduire la navigation',exact:true}).click();
+        const nav=page.getByRole('button',{name:'Historique',exact:true});
+        await nav.focus();assert.equal(await page.locator('.sh').getByRole('tooltip').isVisible(),true);
+        await nav.press('Escape');assert.equal(await page.locator('.sh').getByRole('tooltip').count(),0);
+        await nav.press('Enter');await checkView('history');
+        await page.getByRole('button',{name:'Développer la navigation',exact:true}).click();
+        // Direct loading and reload retain the selected workspace and filters.
+        await page.goto(base+'?shView=history&shCircuit=2&shType=0');await checkView('history');
+        assert.equal(await page.getByLabel('Filtrer par circuit',{exact:true}).inputValue(),'2');
+        await page.reload();await checkView('history');
+        assert.equal(await page.getByLabel('Filtrer par diagnostic').inputValue(),'0');
+        await page.getByRole('button',{name:'Réinitialiser',exact:true}).click();
+        for(const width of [5120,3440,1920,1440,1024,768,390]) {
+          await page.setViewportSize({width,height:1080});await page.emulateMedia({reducedMotion:'reduce'});
+          for(const view of ['overview','circuits','analytics','history']) {
+            await navigate(view);
+            assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'overflow '+width+' '+view);
+            assert.ok(await page.locator('.reception-flash').evaluateAll(es=>es.every(e=>getComputedStyle(e).animationName==='none')));
+          }
+        }
+          // Scroll both the document and the history table, then reach every item.
+          for(const [width,height] of [[1920,1080],[3440,720],[1366,600],[1280,320],[1024,400],[768,500],[390,844],[667,375]]) {
+            await page.setViewportSize({width,height});
+            for(const collapsed of (width>1200?[false,true]:[false])) {
+              const toggle=page.locator('.sidebar-toggle');
+              if(await toggle.isVisible() && (await toggle.getAttribute('aria-expanded')==='false')!==collapsed)await toggle.click();
+              for(const view of ['overview','circuits','analytics','history']) {
+                await navigate(view);
+                await page.evaluate(()=>{ const table=document.querySelector('.table-scroll');if(table)table.scrollTop=table.scrollHeight;window.scrollTo(0,document.documentElement.scrollHeight); });
+                await page.waitForTimeout(60);
+                const geometry=await page.locator('.sidebar').evaluate(el=>{
+                  const r=el.getBoundingClientRect();const w=document.querySelector('.workspace').getBoundingClientRect();
+                  return {top:r.top,bottom:r.bottom,overlap:innerWidth>800 && r.right>w.left+1,overflow:document.documentElement.scrollWidth>innerWidth};
+                });
+                assert.ok(geometry.top>=-1 && geometry.bottom<=height+1,JSON.stringify({width,height,view,geometry}));
+                assert.equal(geometry.overlap,false);assert.equal(geometry.overflow,false);
+                for(const name of Object.values(names)) {
+                  const button=page.getByRole('button',{name,exact:true});
+                  await button.focus();
+                  if(width<=800)assert.equal(await button.locator('.nav-label').isVisible(),true,'mobile labels survive collapsed desktop');
+                  assert.ok(await button.evaluate(el=>{
+                    const r=el.getBoundingClientRect();const n=el.closest('nav').getBoundingClientRect();const icon=el.querySelector('svg').getBoundingClientRect();
+                    return r.top>=Math.max(0,n.top)-1 && r.bottom<=Math.min(innerHeight,n.bottom)+1 && icon.left>=n.left && icon.right<=n.right && document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===el;
+                  }),name+' accessible '+width+'x'+height);
+                }
+              }
+            }
+          }
+          await page.setViewportSize({width:1920,height:1080});
+        for(const view of ['overview','circuits','analytics','history']) {
+          await navigate(view);
+          const close=page.getByRole('button',{name:'Close',exact:true});if(await close.isVisible())await close.click();
+          await page.screenshot({path:path.join(dir,'dashboard-'+view+'.png'),fullPage:true});
+        }
+        await page.setViewportSize({width:390,height:844});await navigate('overview');
         await page.screenshot({path:path.join(dir,'dashboard-mobile.png'),fullPage:true});
-        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
-        const mobileBounds=await page.locator('.sh, .sh .circuit, .sh .pill, .sh .history').evaluateAll(elements=>elements.map(e=>({name:e.className,left:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right})));
-        assert.ok(mobileBounds.every(b=>b.left>=0&&b.right<=390),JSON.stringify(mobileBounds));
+        assert.equal((await snapshot()).total,before.total+2);
         assert.deepEqual(errors,[]);
       } finally { await browser.close(); }
     });
