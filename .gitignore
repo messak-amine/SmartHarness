@@ -28,3 +28,11 @@ venv/
 
 .pio-core/
 broker/passwords
+
+# Local VS Code configuration
+.vscode/
+
+firmware/**/build/
+firmware/**/sdkconfig
+firmware/**/sdkconfig.old
+firmware/**/managed_components/
