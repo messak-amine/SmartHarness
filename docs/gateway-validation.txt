@@ -1,0 +1,103 @@
+test_initial_state (test_circuit.TestCircuit.test_initial_state) ... ok
+test_voltage_when_disconnected (test_circuit.TestCircuit.test_voltage_when_disconnected) ... ok
+test_voltage_when_off_and_connected (test_circuit.TestCircuit.test_voltage_when_off_and_connected) ... ok
+test_voltage_when_off_and_disconnected (test_circuit.TestCircuit.test_voltage_when_off_and_disconnected) ... ok
+test_voltage_when_on_and_connected (test_circuit.TestCircuit.test_voltage_when_on_and_connected) ... ok
+test_detect_disconnection (test_ecu.TestECU.test_detect_disconnection) ... ok
+test_fault_recovery (test_ecu.TestECU.test_fault_recovery) ... ok
+test_no_duplicate_fault_events (test_ecu.TestECU.test_no_duplicate_fault_events) ... ok
+test_no_duplicate_recovery_events (test_ecu.TestECU.test_no_duplicate_recovery_events) ... ok
+test_noncontract_fault_does_not_fake_can_code (test_electrical_bridge.LabCANCompatibilityTests.test_noncontract_fault_does_not_fake_can_code) ... ok
+test_simultaneous_open_faults_from_two_ecus (test_electrical_bridge.LabCANCompatibilityTests.test_simultaneous_open_faults_from_two_ecus) ... ok
+test_wire_open_sends_compatible_can_frame (test_electrical_bridge.LabCANCompatibilityTests.test_wire_open_sends_compatible_can_frame) ... ok
+test_wire_recovery_uses_existing_fault_code_zero (test_electrical_bridge.LabCANCompatibilityTests.test_wire_recovery_uses_existing_fault_code_zero) ... ok
+test_cannot_reset_fuse_while_short_remains (test_electrical_lab.ElectricalLabTests.test_cannot_reset_fuse_while_short_remains) ... ok
+test_four_healthy_circuits_have_readings (test_electrical_lab.ElectricalLabTests.test_four_healthy_circuits_have_readings) ... ok
+test_fuse_remains_tripped_until_reset (test_electrical_lab.ElectricalLabTests.test_fuse_remains_tripped_until_reset) ... ok
+test_intermittent_contact_alternates (test_electrical_lab.ElectricalLabTests.test_intermittent_contact_alternates) ... ok
+test_invalid_modes_and_noise_level_rejected (test_electrical_lab.ElectricalLabTests.test_invalid_modes_and_noise_level_rejected) ... ok
+test_low_voltage_detected (test_electrical_lab.ElectricalLabTests.test_low_voltage_detected) ... ok
+test_no_duplicate_persistent_fault_events (test_electrical_lab.ElectricalLabTests.test_no_duplicate_persistent_fault_events) ... ok
+test_nominal_voltage_and_current_are_nonzero (test_electrical_lab.ElectricalLabTests.test_nominal_voltage_and_current_are_nonzero) ... ok
+test_off_does_not_generate_false_new_fault (test_electrical_lab.ElectricalLabTests.test_off_does_not_generate_false_new_fault) ... ok
+test_off_preserves_latched_fault_until_on (test_electrical_lab.ElectricalLabTests.test_off_preserves_latched_fault_until_on) ... ok
+test_open_circuit_detected_after_debounce (test_electrical_lab.ElectricalLabTests.test_open_circuit_detected_after_debounce) ... ok
+test_open_recovery_is_reported_once (test_electrical_lab.ElectricalLabTests.test_open_recovery_is_reported_once) ... ok
+test_overload_has_high_current_and_alarm (test_electrical_lab.ElectricalLabTests.test_overload_has_high_current_and_alarm) ... ok
+test_reproducible_noise_with_fixed_seed (test_electrical_lab.ElectricalLabTests.test_reproducible_noise_with_fixed_seed) ... ok
+test_sequence_rollover (test_electrical_lab.ElectricalLabTests.test_sequence_rollover) ... ok
+test_short_circuit_precedes_protection_trip (test_electrical_lab.ElectricalLabTests.test_short_circuit_precedes_protection_trip) ... ok
+test_two_ecus_independent_local_sequences (test_electrical_lab.ElectricalLabTests.test_two_ecus_independent_local_sequences) ... ok
+test_broker_restart_flushes_offline_event (test_gateway_mqtt.BrokerIntegrationTests.test_broker_restart_flushes_offline_event) ... MQTT disconnected: Unspecified error; automatic retry enabled
+ok
+test_gateway_status_online_then_graceful_offline (test_gateway_mqtt.BrokerIntegrationTests.test_gateway_status_online_then_graceful_offline) ... ok
+test_virtual_can_to_real_broker (test_gateway_mqtt.BrokerIntegrationTests.test_virtual_can_to_real_broker) ... ok
+test_four_circuits_fault_recovery (test_gateway_mqtt.GatewayMQTTTests.test_four_circuits_fault_recovery) ... ok
+test_invalid_frames_never_reach_mqtt (test_gateway_mqtt.GatewayMQTTTests.test_invalid_frames_never_reach_mqtt) ... Rejected CAN frame: Invalid fault code or reserved flags
+Rejected CAN frame: Circuit does not belong to ECU
+Rejected CAN frame: Invalid fault code or reserved flags
+Rejected CAN frame: Inconsistent active flag and fault code
+ok
+test_qos_topics_and_queue_overflow (test_gateway_mqtt.GatewayMQTTTests.test_qos_topics_and_queue_overflow) ... ok
+test_reject_rtr_error_fd_and_dlc (test_gateway_mqtt.GatewayMQTTTests.test_reject_rtr_error_fd_and_dlc) ... ok
+test_two_ecus_send_faults (test_smoke.SmartHarnessSmokeTest.test_two_ecus_send_faults) ... ok
+test_ecu_a_uses_id_080 (test_validation_can_protocol.CANEncodingTests.test_ecu_a_uses_id_080) ... ok
+test_ecu_b_uses_id_081 (test_validation_can_protocol.CANEncodingTests.test_ecu_b_uses_id_081) ... ok
+test_exactly_eight_payload_bytes (test_validation_can_protocol.CANEncodingTests.test_exactly_eight_payload_bytes) ... ok
+test_example_payload_matches_contract (test_validation_can_protocol.CANEncodingTests.test_example_payload_matches_contract) ... ok
+test_flags_when_command_off_and_fault_inactive (test_validation_can_protocol.CANEncodingTests.test_flags_when_command_off_and_fault_inactive) ... ok
+test_maximum_uint16_fields (test_validation_can_protocol.CANEncodingTests.test_maximum_uint16_fields) ... ok
+test_recovery_flags_are_command_on_without_active (test_validation_can_protocol.CANEncodingTests.test_recovery_flags_are_command_on_without_active) ... ok
+test_standard_classical_can_frame (test_validation_can_protocol.CANEncodingTests.test_standard_classical_can_frame) ... ok
+test_voltage_little_endian_and_sequence_little_endian (test_validation_can_protocol.CANEncodingTests.test_voltage_little_endian_and_sequence_little_endian) ... ok
+test_reconnection_restores_voltage_while_on (test_validation_circuit.AdditionalCircuitTests.test_reconnection_restores_voltage_while_on) ... ok
+test_healthy_circuits_produce_no_events (test_validation_ecu.ECUTests.test_healthy_circuits_produce_no_events) ... ok
+test_off_after_fault_preserves_fault_state_current_policy (test_validation_ecu.ECUTests.test_off_after_fault_preserves_fault_state_current_policy)
+Characterization, not an endorsement of the OFF-state policy. ... ok
+test_off_disconnected_circuit_creates_no_new_fault (test_validation_ecu.ECUTests.test_off_disconnected_circuit_creates_no_new_fault) ... ok
+test_on_again_while_still_disconnected_no_duplicate (test_validation_ecu.ECUTests.test_on_again_while_still_disconnected_no_duplicate) ... ok
+test_one_fault_recovery_does_not_clear_other_fault (test_validation_ecu.ECUTests.test_one_fault_recovery_does_not_clear_other_fault) ... ok
+test_reconnect_while_off_reports_recovery_when_on_again (test_validation_ecu.ECUTests.test_reconnect_while_off_reports_recovery_when_on_again) ... ok
+test_repeated_healthy_scans_do_not_create_events (test_validation_ecu.ECUTests.test_repeated_healthy_scans_do_not_create_events) ... ok
+test_repeated_scans_after_recovery_are_silent (test_validation_ecu.ECUTests.test_repeated_scans_after_recovery_are_silent) ... ok
+test_sequence_wraps_65535_to_zero (test_validation_ecu.ECUTests.test_sequence_wraps_65535_to_zero) ... ok
+test_threshold_below_1000_is_fault (test_validation_ecu.ECUTests.test_threshold_below_1000_is_fault) ... ok
+test_threshold_equal_1000_is_healthy (test_validation_ecu.ECUTests.test_threshold_equal_1000_is_healthy) ... ok
+test_two_ecus_have_independent_states_and_sequences (test_validation_ecu.ECUTests.test_two_ecus_have_independent_states_and_sequences) ... ok
+test_two_faults_in_one_ecu_are_separate_events (test_validation_ecu.ECUTests.test_two_faults_in_one_ecu_are_separate_events) ... ok
+test_extended_frame_rejected (test_validation_gateway.GatewayTests.test_extended_frame_rejected) ... ok
+test_planned_telemetry_id_not_accepted_as_fault (test_validation_gateway.GatewayTests.test_planned_telemetry_id_not_accepted_as_fault) ... ok
+test_round_trip_fault_and_recovery (test_validation_gateway.GatewayTests.test_round_trip_fault_and_recovery) ... ok
+test_round_trip_recovers_voltage_and_sequence (test_validation_gateway.GatewayTests.test_round_trip_recovers_voltage_and_sequence) ... ok
+test_unknown_can_id_rejected (test_validation_gateway.GatewayTests.test_unknown_can_id_rejected) ... ok
+test_valid_fault_decodes_correctly (test_validation_gateway.GatewayTests.test_valid_fault_decodes_correctly) ... ok
+test_wrong_payload_lengths_rejected (test_validation_gateway.GatewayTests.test_wrong_payload_lengths_rejected) ... ok
+test_wrong_protocol_version_rejected (test_validation_gateway.GatewayTests.test_wrong_protocol_version_rejected) ... ok
+test_can_payload_is_preserved_through_virtual_transport (test_validation_integration.IntegrationTests.test_can_payload_is_preserved_through_virtual_transport) ... ok
+test_each_of_four_circuits_fault_and_recovery (test_validation_integration.IntegrationTests.test_each_of_four_circuits_fault_and_recovery) ... ok
+test_four_healthy_circuits_emit_nothing (test_validation_integration.IntegrationTests.test_four_healthy_circuits_emit_nothing) ... ok
+test_multi_faults_individual_recoveries (test_validation_integration.IntegrationTests.test_multi_faults_individual_recoveries) ... ok
+test_repeated_scans_do_not_duplicate_frames (test_validation_integration.IntegrationTests.test_repeated_scans_do_not_duplicate_frames) ... ok
+test_simultaneous_faults_on_different_ecus (test_validation_integration.IntegrationTests.test_simultaneous_faults_on_different_ecus) ... ok
+test_two_faults_on_same_ecu (test_validation_integration.IntegrationTests.test_two_faults_on_same_ecu) ... ok
+
+----------------------------------------------------------------------
+Ran 76 tests in 11.166s
+
+OK
+{"ecu": "A", "circuit": 1, "fault_code": 1, "active": true, "voltage_mv": 0, "command_on": true, "seq": 1}
+{"ecu": "A", "circuit": 2, "fault_code": 1, "active": true, "voltage_mv": 0, "command_on": true, "seq": 2}
+{"ecu": "B", "circuit": 3, "fault_code": 1, "active": true, "voltage_mv": 0, "command_on": true, "seq": 1}
+{"ecu": "B", "circuit": 4, "fault_code": 1, "active": true, "voltage_mv": 0, "command_on": true, "seq": 2}
+{"ecu": "A", "circuit": 1, "fault_code": 0, "active": false, "voltage_mv": 3300, "command_on": true, "seq": 3}
+{"ecu": "A", "circuit": 2, "fault_code": 0, "active": false, "voltage_mv": 3300, "command_on": true, "seq": 4}
+{"ecu": "B", "circuit": 3, "fault_code": 0, "active": false, "voltage_mv": 3300, "command_on": true, "seq": 3}
+{"ecu": "B", "circuit": 4, "fault_code": 0, "active": false, "voltage_mv": 3300, "command_on": true, "seq": 4}
+{"ecu": "A", "circuit": 1, "fault_code": 1, "active": true, "voltage_mv": 0, "command_on": true, "seq": 1}
+{"ecu": "A", "circuit": 2, "fault_code": 1, "active": true, "voltage_mv": 0, "command_on": true, "seq": 2}
+{"ecu": "B", "circuit": 3, "fault_code": 1, "active": true, "voltage_mv": 0, "command_on": true, "seq": 1}
+{"ecu": "B", "circuit": 4, "fault_code": 1, "active": true, "voltage_mv": 0, "command_on": true, "seq": 2}
+{"ecu": "A", "circuit": 1, "fault_code": 0, "active": false, "voltage_mv": 3300, "command_on": true, "seq": 3}
+{"ecu": "A", "circuit": 2, "fault_code": 0, "active": false, "voltage_mv": 3300, "command_on": true, "seq": 4}
+{"ecu": "B", "circuit": 3, "fault_code": 0, "active": false, "voltage_mv": 3300, "command_on": true, "seq": 3}
+{"ecu": "B", "circuit": 4, "fault_code": 0, "active": false, "voltage_mv": 3300, "command_on": true, "seq": 4}
