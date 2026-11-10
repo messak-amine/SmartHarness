@@ -1,0 +1,251 @@
+<template>
+  <main class="sh sh-v2" :class="{'sidebar-collapsed':collapsed}" v-if="msg && msg.payload">
+    <svg class="icon-library" aria-hidden="true" width="0" height="0"><defs>
+        <symbol id="sh-icon-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3z M12 9v5 M12 17v1"/></symbol>
+        <symbol id="sh-icon-check" viewBox="0 0 24 24"><path d="M21 11v1a9 9 0 1 1-5.3-8.2 M8 11l4 4 9-10"/></symbol>
+        <symbol id="sh-icon-unknown" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 1 1 18 0 M9 9a3 3 0 1 1 5 2.2c-1 .8-2 1-2 3 M12 17v.5"/></symbol>
+        <symbol id="sh-icon-db" viewBox="0 0 24 24"><path d="M3 6c0-4 18-4 18 0s-18 4-18 0z M3 6v12c0 4 18 4 18 0V6 M3 12c0 4 18 4 18 0"/></symbol>
+        <symbol id="sh-icon-lamp" viewBox="0 0 24 24"><path d="M13 6q9 1 9 6t-9 6V6z M2 7h8 M1 12h9 M2 17h8"/></symbol>
+        <symbol id="sh-icon-turn" viewBox="0 0 24 24"><path d="M2 9h11V4l9 8-9 8v-5H2z"/></symbol>
+        <symbol id="sh-icon-brake" viewBox="0 0 24 24"><path d="M5 17V9a7 7 0 0 1 14 0v8H5z M2 20h20 M8 7v6 M12 5v8 M16 7v6"/></symbol>
+        <symbol id="sh-icon-fan" viewBox="0 0 24 24"><path d="M12 10C7 1 17 0 16 6l-2 5 M14 12c10-3 10 7 4 6l-5-4 M11 14c-2 10-10 5-7 1l5-3 M14 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0"/></symbol>
+        <symbol id="sh-icon-clock" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z M12 6v6l4 2"/></symbol>
+    </defs></svg>
+    <aside class="sidebar" aria-label="Navigation SmartHarness">
+      <div class="sidebar-inner">
+        <a class="brand" href="#" @click.prevent="goTo('overview')" aria-label="SmartHarness, vue d’ensemble">
+          <svg class="brand-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M9 8h19v8H17v8h14v8H9v-8h8v-8H9z" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="31" cy="8" r="3" fill="currentColor"/></svg>
+          <span class="brand-copy">SmartHarness<small>AUTOMOTIVE DIAGNOSTIC SYSTEM</small></span>
+        </a>
+        <button class="sidebar-toggle" :aria-expanded="!collapsed" :aria-label="collapsed?'Développer la navigation':'Réduire la navigation'" @click="collapsed=!collapsed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3z M9 4v16 M16 9l-3 3 3 3"/></svg><span>Réduire le menu</span></button>
+        <p class="nav-caption">SUPERVISION</p>
+        <nav aria-label="Sections" @scroll="tooltip=null">
+          <button v-for="item in navigation" :key="item.id" :class="{selected:section===item.id}" :aria-label="item.label" :aria-describedby="tooltip===item.id ? 'sh-tip-'+item.id : undefined" @mouseenter="showNavTooltip($event,item.id)" @mouseleave="tooltip=null" @focus="showNavTooltip($event,item.id)" @blur="tooltip=null" @keydown.esc.stop="tooltip=null" :aria-current="section===item.id?'location':undefined" @click="goTo(item.id); tooltip=null"><svg viewBox="0 0 24 24" aria-hidden="true"><path :d="item.icon"/></svg><span class="nav-label">{{ item.label }}</span></button>
+        </nav>
+        <span v-if="tooltip" class="nav-floating-tooltip" role="tooltip" :id="'sh-tip-'+tooltip" :style="navTooltipStyle">{{ navigation.find(item => item.id===tooltip).label }}</span>
+        <div class="sidebar-note"><div><strong>Chaîne de diagnostic</strong><p>CAN → MQTT → SQLite</p></div></div>
+      </div>
+    </aside>
+    <div class="workspace" :class="'view-'+section">
+      <header ref="overview" class="app-header">
+        <div><h1>Automotive Diagnostic <span>Command Center</span></h1><p class="muted">Diagnostics du faisceau · Simulation des ECU A et B</p></div>
+        <div class="last-reception"><span class="live-label"><svg class="instrument-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#sh-icon-clock"/></svg> RÉCEPTION UTC</span><strong>{{ time(lastReception) }}</strong><small>Horodatage Node-RED · UTC</small></div>
+      </header>
+      <section class="connections" aria-label="Connexions">
+        <div><i :class="['dot',data.mqtt==='connected'?'good':'bad']"></i><span>Broker MQTT</span><strong>{{ data.mqtt==='connected'?'Connecté':'Déconnecté' }}</strong></div>
+        <div><i :class="['dot',data.gateway==='online'?'good':'warning']"></i><span>Gateway</span><strong>{{ gatewayLabel }}</strong></div>
+        <div><i :class="['dot',data.database==='ready'?'good':'bad']"></i><span>SQLite</span><strong>{{ data.database==='ready'?'Disponible':data.database==='error'?'Erreur':'Initialisation' }}</strong></div>
+        <div><i class="dot warning"></i><span>Présence ECU</span><strong>Non déterminée</strong></div>
+      </section>
+      <div v-if="data.gateway!=='online'" class="gateway-warning" role="status"><span aria-hidden="true">!</span><strong>{{ data.gateway==='offline'?'Gateway hors ligne':'Statut Gateway inconnu' }}</strong><p>Les derniers diagnostics restent affichés. La présence des ECU n’est pas confirmée.</p></div>
+      <div role="alert" class="error" v-if="data.last_error">Dernière anomalie : {{ data.last_error }} · Rejets : {{ data.rejected }} · Écritures échouées : {{ data.failed_writes }}</div>
+      <div class="view-heading"><h2 ref="viewTitle" tabindex="-1">{{ currentView }}</h2><span class="caption" v-if="section==='history'">{{ number(data.total) }} réceptions en base · fenêtre de {{ data.history.length }} lignes</span></div>
+      <section v-show="section==='overview'" class="summary" aria-label="Résumé des derniers diagnostics">
+        <article class="metric fault-metric"><div><span>Défauts actifs reçus</span><svg class="instrument-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#sh-icon-alert"/></svg></div><strong data-summary="fault">{{ summary.fault }}<small>/ 4</small></strong><p>Dernier diagnostic : panne active</p></article>
+        <article class="metric recovery-metric"><div><span>Résolutions reçues</span><svg class="instrument-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#sh-icon-check"/></svg></div><strong data-summary="recovered">{{ summary.recovered }}<small>/ 4</small></strong><p>Santé actuelle non vérifiée</p></article>
+        <article class="metric unknown-metric"><div><span>États inconnus</span><svg class="instrument-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#sh-icon-unknown"/></svg></div><strong data-summary="unknown">{{ summary.unknown }}<small>/ 4</small></strong><p>Aucun diagnostic dans cette exécution</p></article>
+        <article class="metric total-metric"><div><span>Réceptions stockées</span><svg class="instrument-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#sh-icon-db"/></svg></div><strong data-summary="total">{{ number(data.total) }}</strong><p>Total SQLite · répétitions incluses</p></article>
+      </section>
+      <div class="workstation"><div class="overview-grid" :data-view="section==='overview'?'overview':'circuits'" v-show="section==='overview'||section==='circuits'">
+        <section class="panel vehicle-panel">
+          <div class="panel-heading"><div><p class="eyebrow">VUE DIAGNOSTIQUE</p><h2>Inspection du véhicule</h2></div><span class="pill">4 circuits / 2 ECU</span></div>
+          <p class="caption">Choisissez un circuit pour consulter les réceptions associées.</p>
+          <div class="vehicle-stage"><svg class="vehicle" viewBox="50 -25 800 430" role="img" aria-labelledby="vehicle-title">
+              <title id="vehicle-title">Schéma illustratif d’un véhicule vu du dessus, avant à gauche</title>
+              <defs>
+                <linearGradient id="sh-body" x2="0" y2="1">
+                  <stop stop-color="#8194a8"/>
+                  <stop offset=".2" stop-color="#263649"/>
+                  <stop offset=".5" stop-color="#526a80"/>
+                  <stop offset="1" stop-color="#1b2a40"/>
+                </linearGradient>
+                <linearGradient id="sh-glass" x2="1" y2="1">
+                  <stop stop-color="#142b3c"/>
+                  <stop offset=".5" stop-color="#0b1422"/>
+                  <stop offset="1" stop-color="#325466"/>
+                </linearGradient>
+                <pattern id="sh-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+                  <circle cx="1" cy="1" r="1" fill="#466578" opacity=".32"/>
+                </pattern>
+              <linearGradient id="sh-roof" x1="0" x2="1" y1="0" y2=".8"><stop stop-color="#70879a"/><stop offset=".32" stop-color="#435e73"/><stop offset=".64" stop-color="#30475c"/><stop offset="1" stop-color="#658094"/></linearGradient>
+                <radialGradient id="sh-floor"><stop stop-color="#2a6172" stop-opacity=".32"/><stop offset="1" stop-color="#102034" stop-opacity="0"/></radialGradient></defs>
+              <rect width="900" height="380" fill="url(#sh-grid)"/>
+              <ellipse cx="450" cy="190" rx="390" ry="210" fill="url(#sh-floor)"/><g fill="none" stroke="#36576b" stroke-width="1"><path d="M120 100V35h100 M680 35h100v65 M120 280v65h100 M680 345h100v-65"/><path d="M130 190H770" stroke-dasharray="3 8" opacity=".5"/></g><ellipse cx="452" cy="208" rx="320" ry="132" fill="#040a12" opacity=".7"/>
+              <g class="vehicle-body" stroke="#607a90" stroke-width="1.6">
+                <rect x="250" y="59" width="95" height="38" rx="12" fill="#090f18"/>
+                <rect x="250" y="285" width="95" height="38" rx="12" fill="#090f18"/>
+                <rect x="608" y="59" width="90" height="38" rx="12" fill="#090f18"/>
+                <rect x="608" y="285" width="90" height="38" rx="12" fill="#090f18"/>
+                <path d="M160 132 Q180 81 292 78 L650 82 Q725 88 751 130 Q774 190 751 250 Q725 292 650 298 L292 302 Q180 299 160 248 Q139 190 160 132Z" fill="url(#sh-body)"/>
+                <path d="M195 132 Q242 105 341 108 L372 128 L372 252 L341 272 Q242 275 195 248Z" fill="#33475b"/>
+                <path d="M365 115 L422 102 L570 106 L622 125 L622 255 L570 274 L422 278 L365 265 Q390 190 365 115Z" fill="url(#sh-glass)"/>
+                <path d="M432 116 L558 118 Q573 122 579 135 L579 245 Q570 257 558 262 L432 264 Q449 190 432 116Z" fill="url(#sh-roof)"/>
+                <path d="M640 119 L693 124 Q730 190 693 256 L640 261 Q661 190 640 119Z" fill="url(#sh-glass)"/>
+                <path d="M180 148 L180 232 M227 114 L330 118 M227 266 L330 262 M450 110 L555 112 M450 270 L555 268" fill="none" stroke="#8ca5b7" opacity=".55"/>
+                <path d="M387 89 L402 65 L424 67 L417 94 M387 291 L402 315 L424 313 L417 286" fill="#314b60"/>
+                <path d="M181 120 L197 113 L196 148 L176 158Z M181 260 L197 267 L196 232 L176 222Z" fill="#a2d4e5"/>
+                <path d="M729 125 L742 144 M729 255 L742 236" stroke="#9b5260" stroke-width="6"/>
+                <path d="M212 189 L330 189 M671 190 L717 190" stroke-dasharray="5 7" opacity=".45"/>
+              </g>
+              <g fill="none" stroke="#a1bed2" stroke-width="1.4" opacity=".5"><path d="M215 103Q280 88 355 96 M215 277Q280 292 355 284 M432 107L576 112 M432 273L576 268 M470 116v148 M580 121L606 130 M580 259L606 250 M665 104l43 16 M665 276l43-16"/><path d="M454 120v140 M460 120v140" opacity=".35"/><path d="M299 85v-18 M310 85v-18 M321 85v-18 M299 297v18 M310 297v18 M321 297v18 M637 85v-18 M648 85v-18 M659 85v-18 M637 297v18 M648 297v18 M659 297v18"/></g><g fill="none" stroke="#b8cedb" stroke-width="1" opacity=".35"><path d="M246 111Q290 102 345 110 M246 269Q290 278 345 270 M482 125l67 2 M482 255l67-2 M669 137q24 53 0 106"/><path d="M272 65v15 M282 65v15 M332 65v15 M272 300v15 M282 300v15 M332 300v15 M622 65v15 M632 65v15 M680 65v15 M622 300v15 M632 300v15 M680 300v15"/></g><text x="90" y="195" fill="#7991a8" font-size="12" letter-spacing="3" transform="rotate(-90 90 195)">AVANT</text>
+              <!-- Callouts identify illustrative zones, not electrical connections. -->
+              <g class="vehicle-callouts" fill="none" stroke="#89a6b8" stroke-width="1.5" opacity=".8">
+                <path v-for="(line,index) in ['M225 60v29l-37 44','M225 319v-27l-37-47','M690 190h45','M466 147l-43 35']" :key="index" :d="line" :class="{'selected-callout':filter===String(index+1)||hovered===index+1}"/>
+                <g fill="#142b3d"><circle cx="188" cy="133" r="4"/><circle cx="188" cy="245" r="4"/><circle cx="735" cy="190" r="4"/><circle cx="423" cy="182" r="4"/></g>
+              </g>
+              <g fill="none" stroke="#a6c0d1" opacity=".5">
+                <path d="M199 151q57-29 140-26 M199 229q57 29 140 26 M451 130l99 2q13 0 16 13v89q-3 14-16 14l-99 2"/>
+                <path d="M164 161q-6 29 0 58 M168 163q-6 27 0 54 M720 157q6 33 0 66"/>
+              </g>
+            </svg>
+            <button v-for="c in data.circuits" :key="c.circuit" :class="['marker',tone(c),{chosen:highlighted(c),preview:hovered===c.circuit}]" :style="markerStyle(c.circuit)" :aria-label="'Sélectionner le circuit '+c.circuit+' : '+c.name" :aria-pressed="filter===String(c.circuit)" :title="c.name+' · ECU '+c.ecu+' · '+label(c.status)" @mouseenter="hovered=c.circuit" @mouseleave="hovered=null" @focus="hovered=c.circuit" @blur="hovered=null" @click="openCircuit(c.circuit)"><span class="marker-number">{{ c.circuit }}<i :key="activity[c.circuit] || 0" :class="{'reception-flash':activity[c.circuit]}" class="reception-ring" aria-hidden="true"></i></span><small>{{ c.name }}<em>ECU {{ c.ecu }}</em></small></button>
+          </div>
+          <div class="selection-detail" aria-live="polite"><template v-if="selectedCircuit"><span :class="['selection-number',tone(selectedCircuit)]">{{ selectedCircuit.circuit }}</span><div><strong>{{ selectedCircuit.name }} · ECU {{ selectedCircuit.ecu }}</strong><p>{{ label(selectedCircuit.status) }} · {{ rows.length }} réceptions dans le filtre</p></div><button class="text-button" @click="goTo('history')">Historique ↗</button></template><template v-else><div v-if="recent.length" class="latest-event"><span class="value-label">Dernière écriture SQLite · #{{ recent[0].event_id }}</span><strong>{{ circuitName(recent[0].circuit) }} · {{ faultLabel(recent[0].fault_code) }}</strong></div>
+              <div v-else><strong>Journal vide</strong><p>En attente de la première réception enregistrée.</p></div></template></div>
+          <div class="legend"><span><i class="dot bad"></i>Panne reçue</span><span><i class="dot good"></i>Résolution reçue</span><span><i class="dot muted"></i>Inconnu</span></div>
+          <p class="illustration-note">Véhicule illustratif · positions indicatives, sans représentation du câblage réel.</p>
+        </section>
+        <section ref="circuits" class="circuit-section" v-show="section==='circuits'">
+          <div class="section-heading"><div><p class="eyebrow">DERNIERS DIAGNOSTICS</p><h2>État des circuits</h2></div><span class="caption">Exécution actuelle</span></div>
+          <div class="circuits">
+            <article v-for="c in data.circuits" :key="c.circuit" :class="['circuit',tone(c),{chosen:highlighted(c),preview:hovered===c.circuit}]" @mouseenter="hovered=c.circuit" @mouseleave="hovered=null">
+              <button class="circuit-heading" :aria-label="'Sélectionner la carte '+c.circuit+' : '+c.name" :aria-pressed="filter===String(c.circuit)" @focus="hovered=c.circuit" @blur="hovered=null" @click="selectCircuit(c.circuit)"><svg class="instrument-icon circuit-icon" aria-hidden="true" viewBox="0 0 24 24"><use :href="'#sh-icon-'+['lamp','turn','brake','fan'][c.circuit-1]"/></svg>
+                <span class="circuit-id"><small>Circuit {{ c.circuit }}</small><strong>{{ c.name }}</strong></span><span class="ecu-tag">ECU {{ c.ecu }}</span></button>
+              <strong class="diagnosis"><i class="dot"></i>{{ label(c.status) }}<small v-if="c.last">Code {{ c.last.fault_code }}</small></strong>
+              <template v-if="c.last">
+                <div class="circuit-values"><div><span class="value-label">Tension reçue</span><div class="measurement">{{ number(c.last.voltage_mv) }} <small>mV</small></div></div><dl><div><dt>Commande</dt><dd>{{ c.last.command_on?'ON':'OFF' }}</dd></div><div><dt>Séquence</dt><dd>{{ c.last.seq }}</dd></div></dl></div>
+                <p class="received"><span><i :key="activity[c.circuit] || 0" :class="{'reception-flash':activity[c.circuit]}" class="reception-led" aria-hidden="true"></i>Réception UTC</span><time>{{ time(c.last.received_at) }}</time></p>
+                <p class="caution" v-if="c.stale">Communication non confirmée</p>
+              </template>
+              <template v-else><div class="empty"><strong>En attente d’un diagnostic</strong><p>Aucun événement reçu dans cette exécution.</p></div><p class="received" v-if="c.historical">Archive : {{ faultLabel(c.historical.fault_code) }} · {{ time(c.historical.received_at) }} UTC. État actuel inconnu.</p></template>
+              <button class="text-button circuit-history" @click="inspectCircuit(c.circuit)" :aria-label="'Historique du circuit '+c.circuit">Voir l’historique ↗</button>
+            </article>
+          </div>
+        </section>
+      <section class="panel recent-panel" v-show="section==='overview'">
+        <div class="panel-heading"><h2>Dernières réceptions</h2><button class="text-button" @click="goTo('history')">Tout consulter ↗</button></div>
+        <p class="chart-empty" v-if="!recent.length">En attente de la première réception enregistrée.</p>
+        <button class="recent-event" v-for="event in recent" :key="event.event_id" @click="inspectCircuit(event.circuit)">
+          <i :class="['dot',event.active?'bad':'good']"></i><span><strong>{{ circuitName(event.circuit) }} · ECU {{ event.ecu }}</strong><span>{{ faultLabel(event.fault_code) }}</span><time>{{ time(event.received_at) }} UTC</time></span><small>#{{ event.event_id }} ↗</small>
+        </button>
+        <p class="caption">Horaires de réception par Node-RED. Les répétitions restent enregistrées.</p>
+      </section>
+      </div>
+      <div class="journal-workspace"><div data-view="analytics" v-show="section==='analytics'"><div class="section-heading analytics-heading"><div><p class="eyebrow">LECTURE DU JOURNAL</p><h2>Analyse des réceptions</h2></div><span class="caption">200 dernières réceptions au maximum · aucun signal de santé calculé</span></div>
+      <section ref="analytics" class="analytics">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">VOLUME DE DIAGNOSTICS</p>
+              <h2>Réceptions par circuit</h2>
+            </div>
+            <span class="pill">{{ data.history.length }} réceptions</span>
+          </div>
+          <div class="bar-row" :class="{preview:hovered===c.circuit}" @mouseenter="hovered=c.circuit" @mouseleave="hovered=null" @focus="hovered=c.circuit" @blur="hovered=null" role="button" v-for="c in circuitCounts" :key="c.circuit" tabindex="0" :aria-pressed="filter===String(c.circuit)" @click="inspectCircuit(c.circuit)" @keydown.enter.prevent="inspectCircuit(c.circuit)" @keydown.space.prevent="inspectCircuit(c.circuit)" :aria-label="c.name+' : '+c.count+' réceptions'" :title="c.count+' réceptions / '+data.history.length+' dans la fenêtre historique'">
+            <div>
+              <span>{{ c.circuit }} · {{ c.name }}</span>
+              <strong>{{ c.count }}</strong>
+            </div>
+            <div class="bar-track">
+              <div :style="{width:c.percent+'%'}">
+              </div>
+            </div>
+          </div>
+          <p class="caption" v-if="data.history.length">Sélectionnez une barre pour filtrer le journal. Les répétitions sont incluses.</p><p class="chart-empty" v-else>En attente de la première réception enregistrée.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">RÉPARTITION DU JOURNAL</p>
+              <h2>Types de diagnostics</h2>
+            </div>
+          </div>
+          <div class="distribution">
+            <div class="donut" :style="{background:donutBackground}" role="img" :aria-label="typeCounts.map(t=>t.label+' : '+t.count).join(', ')">
+              <div>
+                <strong>{{ data.history.length }}</strong>
+                <small>réceptions</small>
+              </div>
+            </div>
+            <div class="distribution-legend">
+              <button v-for="t in typeCounts" :key="t.code" @click="inspectType(t.code)" :aria-label="'Consulter les réceptions : '+t.label" :aria-pressed="typeFilter===String(t.code)" :title="t.count+' réceptions / '+data.history.length">
+                <i :class="['dot',t.tone]">
+                </i>
+                <span>{{ t.label }}</span>
+                <strong>{{ t.count }}</strong><span aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </div>
+          <p class="caption">Choisissez un type pour consulter les événements correspondants.</p>
+        </article>
+      </section>
+      <section class="panel reception-breakdown"><h2>Répartition par ECU</h2><div class="ecu-breakdown"><div v-for="item in ecuCounts" :key="item.ecu"><span>ECU {{ item.ecu }}</span><strong>{{ item.count }} réceptions</strong></div></div><p class="caption" v-if="data.history.length">Fenêtre observée en UTC · {{ time(data.history[data.history.length-1].received_at) }} → {{ time(data.history[0].received_at) }}. Horaires de réception.</p><p class="chart-empty" v-else>Le journal est vide.</p></section>
+      </div>
+      <section ref="history" data-view="history" v-show="section==='history'" class="panel history">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">TRAÇABILITÉ & PERSISTANCE</p>
+            <h2>Historique des diagnostics</h2>
+          </div>
+          <span class="pill">{{ rows.length }} / {{ data.history.length }} affichées</span>
+        </div>
+        <div class="filters">
+          <label>Circuit<select v-model="filter" aria-label="Filtrer par circuit">
+              <option value="all">Tous les circuits</option>
+              <option v-for="c in data.circuits" :key="c.circuit" :value="String(c.circuit)">{{ c.circuit }} · {{ c.name }}</option>
+            </select>
+          </label>
+          <label>ECU<select v-model="ecuFilter" aria-label="Filtrer par ECU">
+              <option value="all">Tous les ECU</option>
+              <option>A</option>
+              <option>B</option>
+            </select>
+          </label>
+          <label>Diagnostic<select v-model="typeFilter" aria-label="Filtrer par diagnostic">
+              <option value="all">Tous les diagnostics</option>
+              <option value="1">Déconnexion</option>
+              <option value="0">Résolution reçue</option>
+              <option value="2">Intermittence (code 2)</option>
+            </select>
+          </label>
+          <button class="reset-button" :disabled="!hasFilters" @click="resetFilters">Réinitialiser</button>
+        </div>
+        <p class="caption">200 dernières réceptions · horodatage UTC par Node-RED, pas à l’apparition de la panne. Les répétitions sont conservées.</p>
+        <div class="table-scroll" tabindex="0" aria-label="Historique défilant">
+          <table>
+            <thead>
+              <tr>
+                <th>N°</th>
+                <th>Réception UTC</th>
+                <th>ECU / circuit</th>
+                <th>Diagnostic</th>
+                <th>Tension</th>
+                <th>Commande</th>
+                <th>Séquence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in rows" :key="row.event_id" :class="{'selected-row':filter===String(row.circuit)}">
+                <td>#{{ row.event_id }}</td>
+                <td>{{ time(row.received_at) }}</td>
+                <td>{{ row.ecu }} / {{ row.circuit }}</td>
+                <td>
+                  <span :class="['event-badge',row.active?'event-fault':'event-recovered']">{{ faultLabel(row.fault_code) }} · code {{ row.fault_code }}</span>
+                </td>
+                <td>{{ row.voltage_mv }} mV</td>
+                <td>{{ row.command_on?'ON':'OFF' }}</td>
+                <td>{{ row.seq }}</td>
+              </tr>
+              <tr v-if="!rows.length">
+                <td colspan="7">{{ hasFilters ? 'Aucun événement pour cette combinaison. Modifiez les filtres ou réinitialisez-les.' : 'Le journal est vide. Les diagnostics apparaîtront après leur enregistrement.' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      </div></div>
+      <footer><span>SmartHarness</span><p>Une résolution reçue ne confirme pas la santé actuelle de l’ECU. OFF n’est pas une résolution. Aucune télémétrie continue.</p></footer>
+    </div>
+  </main><p v-else class="sh-loading">Chargement du diagnostic…</p>
+</template>

@@ -1,0 +1,33 @@
+name: Mission 4 Dashboard and SQLite
+on:
+  pull_request:
+    branches: [dev, develop]
+    paths: ['dashboard/**', 'start-local.ps1', 'start-online.ps1', '.github/workflows/dashboard-validation.yml']
+  workflow_dispatch:
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: sudo apt-get update && sudo apt-get install -y mosquitto
+      - run: npm ci
+      - run: npm test
+      - name: Verify generated flows
+        run: npm run build:flows && git diff --exit-code -- flows.json
+      - name: Run integration tests with the packaged Mosquitto broker
+        env:
+          MOSQUITTO_BIN: /usr/sbin/mosquitto
+        run: |
+          # AppArmor permits broker configs here. Keep the test outside conf.d.
+          config=$(sudo mktemp /etc/mosquitto/smartharness-test-XXXXXX.conf)
+          trap 'sudo rm -f -- "$config"' EXIT
+          sudo chown "$(id -u):$(id -g)" "$config"
+          SH_TEST_MOSQUITTO_CONFIG="$config" npm run test:integration
