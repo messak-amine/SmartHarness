@@ -10,9 +10,15 @@ const {DatabaseSync}=require('node:sqlite');
 const root=path.resolve(__dirname,'../..');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function port() { const s=net.createServer(); await new Promise(resolve=>s.listen(0,'127.0.0.1',resolve)); const p=s.address().port; await new Promise(resolve=>s.close(resolve)); return p; }
-async function until(fn,label,timeout=20000) {
+async function until(fn,label,timeout=20000,child) {
   const end=Date.now()+timeout; let last;
-  while(Date.now()<end) { try { const value=await fn(); if(value) return value; } catch(e) { last=e; } await delay(100); }
+  while(Date.now()<end) {
+    if (child && (!child.pid || child.exitCode !== null || child.signalCode !== null)) {
+      throw new Error(`${label} : processus indisponible (code=${child.exitCode}, signal=${child.signalCode})`);
+    }
+    try { const value=await fn(); if(value) return value; } catch(e) { last=e; }
+    await delay(100);
+  }
   throw new Error(`Timeout: ${label}${last?' — '+last.message:''}`);
 }
 async function stop(child) {
@@ -21,12 +27,15 @@ async function stop(child) {
 }
 
 test('Chaîne réelle Mosquitto → Node-RED → SQLite, reprise et erreurs', {timeout:180000}, async t=>{
-  const dir=fs.mkdtempSync(path.join(fs.mkdirSync(path.join(root,'.test-runtime'),{recursive:true})||path.join(root,'.test-runtime'),'pipeline-'));
+  const runtime=path.join(root,'.test-runtime');
+  fs.mkdirSync(runtime,{recursive:true});
+  const dir=fs.mkdtempSync(path.join(runtime,'pipeline-'));
   const mqttPort=await port(), httpPort=await port();
   const dbPath=path.join(dir,'events.sqlite');
   const brokerExe=process.env.MOSQUITTO_BIN||(process.platform==='win32'?'C:/Program Files/Mosquitto/mosquitto.exe':'mosquitto');
-  const config=path.join(dir,'mosquitto.conf');
-  fs.writeFileSync(config,`listener ${mqttPort} 127.0.0.1\nallow_anonymous true\npersistence false\n`);
+  const config=process.env.SH_TEST_MOSQUITTO_CONFIG || path.join(dir,'mosquitto.conf');
+  const configText=`listener ${mqttPort} 127.0.0.1\nallow_anonymous true\npersistence false\n`;
+  fs.writeFileSync(config,configText,{mode:0o600});
   let broker,red,client; let log='';
   function launch(command,args,env={}) {
     const child=spawn(command,args,{cwd:root,env:{...process.env,...env},windowsHide:true,stdio:['ignore','pipe','pipe']});
@@ -34,8 +43,9 @@ test('Chaîne réelle Mosquitto → Node-RED → SQLite, reprise et erreurs', {t
     child.on('error',e=>{log+=e.stack;}); return child;
   }
   async function startBroker() {
+    assert.equal(fs.readFileSync(config,'utf8'),configText,`Configuration Mosquitto : ${config}`);
     broker=launch(brokerExe,['-c',config]);
-    await until(()=>new Promise(resolve=>{const s=net.connect(mqttPort,'127.0.0.1');s.once('connect',()=>{s.destroy();resolve(true);});s.once('error',()=>resolve(false));}),'broker');
+    await until(()=>new Promise(resolve=>{const s=net.connect(mqttPort,'127.0.0.1');s.once('connect',()=>{s.destroy();resolve(true);});s.once('error',()=>resolve(false));}),`Mosquitto -c ${config}`,20000,broker);
   }
   async function startRed() {
     red=launch(process.execPath,['scripts/start.js'],{PORT:String(httpPort),MQTT_HOST:'127.0.0.1',MQTT_PORT:String(mqttPort),SH_DB_PATH:dbPath,SH_RUNTIME_DIR:path.join(dir,'runtime')});
