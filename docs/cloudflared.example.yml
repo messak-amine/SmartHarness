@@ -1,0 +1,14 @@
+# Modèle de tunnel géré localement. Remplacer toutes les valeurs d'exemple.
+tunnel: <UUID-DU-TUNNEL>
+credentials-file: 'C:\chemin-prive\<UUID-DU-TUNNEL>.json'
+ingress:
+  - hostname: diagnostic.example.org
+    service: http://127.0.0.1:1881
+    originRequest:
+      httpHostHeader: diagnostic.example.org
+      access:
+        required: true
+        teamName: <NOM-DEQUIPE-ZERO-TRUST>
+        audTag:
+          - <AUD-DE-LAPPLICATION-SMARTHARNESS>
+  - service: http_status:404
