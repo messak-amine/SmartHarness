@@ -1,7 +1,7 @@
 name: Mission 4 Dashboard and SQLite
 on:
   pull_request:
-    branches: [dev, develop]
+    branches: [dev]
     paths:
       - 'dashboard/**'
       - 'gateway/**'
@@ -13,6 +13,8 @@ on:
       - 'start-local.ps1'
       - 'start-online.ps1'
       - '.github/workflows/dashboard-validation.yml'
+  push:
+    branches: [dev]
   workflow_dispatch:
 jobs:
   dashboard:
@@ -40,6 +42,8 @@ jobs:
       - name: Run integration tests with the packaged Mosquitto broker
         env:
           MOSQUITTO_BIN: /usr/sbin/mosquitto
+          SH_GATEWAY_DIR: ${{ github.workspace }}
+          SH_PYTHON: python
         run: |
           # AppArmor permits broker configs here. Keep the test outside conf.d.
           config=$(sudo mktemp /etc/mosquitto/smartharness-test-XXXXXX.conf)

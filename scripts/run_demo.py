@@ -1,11 +1,12 @@
 """
-SmartHarness 2.0 — Script de Démonstration & Validation Globale Reproductible (Mission 5)
+SmartHarness 2.0 — Démonstration et validation Python (Mission 5)
 Emplacement dans le dépôt : scripts/run_demo.py
 Exécution sur n'importe quel PC :
     python scripts/run_demo.py
 """
 
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -17,22 +18,30 @@ def print_banner(title: str) -> None:
     print("=" * 76)
 
 
-def run_step(desc: str, cmd: list, cwd: Path) -> bool:
+def run_step(desc: str, cmd: list[str], cwd: Path) -> str:
     print(f"\n[*] Étape : {desc}")
     print(f"    Commande : {' '.join(cmd)}")
     t0 = time.perf_counter()
     res = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
     dt = time.perf_counter() - t0
-    if res.returncode == 0:
-        print(f"[+] Succès ({dt:.2f}s)")
-        if res.stdout.strip():
-            lines = res.stdout.strip().splitlines()
-            for line in lines[-6:]:
+    if res.returncode != 0:
+        print(f"[-] Échec ({dt:.2f}s)")
+        print(res.stderr or res.stdout)
+        return "FAILED"
+
+    # unittest writes its result summary to stderr even on a successful exit.
+    skipped = re.search(r"^OK \([^\n)]*\bskipped=(\d+)", res.stderr, re.MULTILINE)
+    if skipped:
+        print(f"[!] Validation incomplète : {skipped.group(1)} tests ignorés ({dt:.2f}s)")
+        for line in res.stderr.splitlines():
+            if " ... skipped " in line:
                 print(f"    | {line}")
-        return True
-    print(f"[-] Échec ({dt:.2f}s) :")
-    print(res.stderr or res.stdout)
-    return False
+        return "INCOMPLETE"
+
+    print(f"[+] Succès ({dt:.2f}s)")
+    for line in res.stdout.strip().splitlines()[-6:]:
+        print(f"    | {line}")
+    return "PASSED"
 
 
 def main() -> int:
@@ -40,8 +49,8 @@ def main() -> int:
     if not (repo_root / "tests").is_dir():
         repo_root = Path.cwd()
 
-    print_banner("SmartHarness 2.0 — Démonstration & Validation Complète (Mission 5)")
-    print("Chaîne : ECU A/B (CAN 250 kbit/s) -> Gateway -> MQTT (QoS 1) -> Node-RED -> SQLite")
+    print_banner("SmartHarness 2.0 — Démonstration & Validation Python (Mission 5)")
+    print("Périmètre : CAN virtuel, Gateway Python et tests MQTT")
     print(f"Dossier racine : {repo_root}")
     print(f"Python         : {sys.version.split()[0]}")
 
@@ -73,21 +82,19 @@ def main() -> int:
         results.append((desc, run_step(desc, cmd, repo_root)))
 
     print_banner("Bilan Récapitulatif de la Validation SmartHarness")
-    all_ok = True
-    for desc, ok in results:
-        status = "PASSED [OK]" if ok else "FAILED [KO]"
+    for desc, status in results:
         print(f"  - {desc:<62} : {status}")
-        if not ok:
-            all_ok = False
 
     print("-" * 76)
-    if all_ok:
-        print("  RÉSULTAT GLOBAL : Système logiciel 100% validé et prêt pour la démonstration.")
-        print("-" * 76)
-        return 0
-    print("  ATTENTION : Au moins une étape a échoué. Vérifiez les logs ci-dessus.")
-    print("-" * 76)
-    return 1
+    statuses = {status for _, status in results}
+    if "FAILED" in statuses:
+        print("  Échec de la validation Python. Vérifiez les logs ci-dessus.")
+        return 1
+    if "INCOMPLETE" in statuses:
+        print("  Validation Python incomplète. Vérifiez les tests ignorés ci-dessus.")
+        return 2
+    print("  Validation Python réussie. Le pipeline Node-RED est testé séparément.")
+    return 0
 
 
 if __name__ == "__main__":

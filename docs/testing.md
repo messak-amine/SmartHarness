@@ -78,7 +78,7 @@ To maintain strict scientific honesty before physical ESP32 testing, `tests/netw
 
 ## 5. Reproducible Demonstration Procedure on Any PC (`scripts/run_demo.py`)
 
-Any team member or reviewer can execute the complete test and simulation suite in a single command from the repository root:
+Run the Python tests and simulations from the repository root:
 
 ```bash
 python scripts/run_demo.py
@@ -90,6 +90,8 @@ This script sequentially runs and verifies:
 3. `python -m simulator.main` (original dynamic CAN simulation)
 4. `python -m simulator.demo_validation` (expanded 4-fault / 4-recovery validation)
 
+Install Mosquitto or set `MOSQUITTO_BIN` to include the broker tests. The demo reports skipped tests as incomplete and exits with status `2`. Node-RED integration runs separately in dashboard CI.
+
 Other manual entry points remain available:
 - Graphical electrical engineering lab: `python -m simulator.gui_lab`
 - Live CAN-to-MQTT bridge (with Mosquitto): `python -m gateway.can_mqtt_bridge`
@@ -97,7 +99,7 @@ Other manual entry points remain available:
 
 ## 6. Continuous Integration (`.github/workflows/`)
 
-Three automated GitHub Actions workflows validate every push and pull request on `dev`:
-- `simulation-validation.yml`: Runs the Python `unittest` discovery suite, `simulator.main`, `simulator.demo_validation`, C native CAN encoder/decoder tests (`tests/native`), and ECU firmware native tests.
-- `gateway-validation.yml`: Validates `gateway/` modules and CAN-to-MQTT bridge tests.
-- `dashboard-validation.yml`: Validates `dashboard/` Node-RED flows, event validator, and SQLite schema tests.
+Three GitHub Actions workflows cover integration on `dev`:
+- `simulation-validation.yml` runs on pushes and pull requests targeting `dev`. It covers Python simulations, native CAN and ECU tests, and a host-side test that compares the ECU's wire frames across the ESP32 and Python gateway decoders.
+- `gateway-validation.yml` runs on pull requests and on pushes to `feat/gateway-mqtt`. It covers the Python bridge with Mosquitto and both ESP32 gateway builds.
+- `dashboard-validation.yml` runs on pushes to `dev` and relevant pull requests. It includes the Python gateway demo through Mosquitto and Node-RED and verifies that SQLite records all eight fault and recovery events.

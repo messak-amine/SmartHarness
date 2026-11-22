@@ -3,7 +3,9 @@ name: SmartHarness validation
 
 on:
   pull_request:
-    branches: [develop]
+    branches: [dev]
+  push:
+    branches: [dev]
   workflow_dispatch:
 
 jobs:
@@ -22,6 +24,10 @@ jobs:
 
       - name: Run Python tests
         run: python -m unittest discover -s tests -v
+
+      - name: Check ECU and gateway CAN wire compatibility
+        shell: bash
+        run: bash tests/native/run_can_pipeline.sh
 
       - name: Run original simulator
         run: python -m simulator.main
